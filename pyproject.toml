@@ -1,0 +1,135 @@
+[tool.poetry]
+name = "amazon-scraper"
+version = "0.1.0"
+description = ""
+authors = ["aibakeneko <aibakeneko@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+loguru = "^0.7.2"
+pyyaml = "^6.0.2"
+requests = "^2.32.3"
+selenium = "^4.23.1"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.8.0"
+isort = "^5.13.2"
+mypy = "^1.11.2"
+pylint = "^3.2.6"
+pytest = "^8.3.2"
+pytest-cov = "^5.0.0"
+pytest-mock = "^3.14.0"
+types-pyyaml = "^6.0.12.20240808"
+types-requests = "^2.32.0.20240712"
+types-setuptools = "^73.0.0.20240822"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.black]
+line-length = 120
+skip-string-normalization = true
+target-version = ["py311"]
+exclude = '''
+(
+  \.git
+  | \.pypy_cache
+  | \.pytest_cache
+  | \.mypy_cache
+  | deprecated
+)
+'''
+
+
+[tool.isort]
+profile = "black"
+line_length = 120
+py_version = "auto"
+float_to_top = true
+src_paths = [ "amazon_scraper", "tests" ]
+
+
+[tool.mypy]
+python_version = "3.11"
+allow_redefinition = true
+check_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+show_error_codes = true
+show_column_numbers = true
+pretty = false
+
+[[tool.mypy.overrides]]
+module = 'tests.*'
+disallow_untyped_defs = false
+
+
+[tool.pylint.main]
+exit-zero = true
+ignore-paths = "deprecated"
+ignore-patterns = ["^\\.#"]
+jobs = 0
+py-version = "3.11"
+
+[tool.pylint.design]
+max-args = 8
+max-attributes = 14
+
+[tool.pylint.exceptions]
+overgeneral-exceptions = ["builtins.BaseException", "builtins.Exception"]
+
+[tool.pylint.format]
+expected-line-ending-format = "LF"
+max-line-length = 120
+
+[tool.pylint."messages control"]
+disable = [
+    "duplicate-code",
+    "invalid-name",
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "line-too-long",
+    "pointless-string-statement",
+    "global-statement",
+    "c-extension-no-member",
+    "too-few-public-methods",
+    "logging-format-interpolation",
+    "logging-fstring-interpolation",
+    "consider-using-enumerate",
+    "unnecessary-comprehension",
+    "too-many-branches",
+    "too-many-locals",
+    "wrong-import-order",
+    "wrong-spelling-in-comment",
+    "wrong-spelling-in-docstring",
+    "redefined-outer-name"  #FIXME: Temporary fix
+]
+
+[tool.pylint.miscellaneous]
+notes = ""
+
+[tool.pylint.refactoring]
+never-returning-functions = ["sys.exit", "argparse.parse_error"]
+
+[tool.pylint.reports]
+output-format = "colorized"
+score = false
+
+
+[tool.pytest.ini_options]
+log_cli = "False"
+testpaths = [
+    "tests",
+]
+python_files = "*_test.py"
+python_functions = "test_*"
+markers = [
+    "web: marks tests as using webdriver (deselect with '-m \"not web\"')"
+]

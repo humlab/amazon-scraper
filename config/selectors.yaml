@@ -1,0 +1,49 @@
+reject_cookies: "#sp-cc-rejectall-link"
+accept_cookies: "#sp-cc-accept"
+dismiss_delivery_options: "#nav-main > div.nav-left > div > div > div.glow-toaster-footer > span.a-button.a-spacing-top-base.a-button-base.glow-toaster-button.glow-toaster-button-dismiss > span > input"
+
+search_box:
+    - "#twotabsearchtextbox"
+    - "#nav-bb-search"
+
+number_of_pages: "span.s-pagination-strip > :nth-last-child(2)"
+
+products: ".s-result-item[data-asin^='B0']"
+product_title: "h2"
+product_price: "span.a-offscreen"
+product_url: "a"
+sponsored: "a.puis-label-popover.puis-sponsored-label-text"
+
+title: "span#productTitle"
+price: 
+    - "#corePriceDisplay_desktop_feature_div > div.a-section.a-spacing-none.aok-align-center.aok-relative > span.aok-offscreen"
+    - "#corePrice_feature_div > div > div > span.a-price.aok-align-center > span.a-offscreen"
+description: 
+    - "div#productDescription"
+    - "#aplus_feature_div > #aplus > div"
+
+image: "img#landingImage"
+about: "div.a-section.a-spacing-medium.a-spacing-top-small ul.a-unordered-list.a-vertical.a-spacing-mini"
+details: "#prodDetails > div > div:nth-child(1)"
+rating: "#acrPopover > span.a-declarative > a > span"
+number_of_ratings: "#acrCustomerReviewText"
+store: "#bylineInfo"
+
+reviews_stars_button:
+    - "#a-autoid-5-announce"
+    - "#a-autoid-7-announce"
+all_reviews: "#star-count-dropdown_0"
+5_star_reviews: "#star-count-dropdown_1"
+4_star_reviews: "#star-count-dropdown_2"
+3_star_reviews: "#star-count-dropdown_3"
+2_star_reviews: "#star-count-dropdown_4"
+1_star_reviews: "#star-count-dropdown_5"
+positive_reviews: "#star-count-dropdown_6"
+critical_reviews: "#star-count-dropdown_7"
+review_elements: ".a-section.review"
+review_title: ".review-title"
+review_rating: ".a-icon-alt"
+review_text: ".review-text"
+review_author: ".a-profile-name"
+review_date: ".review-date"
+review_verified: "span[data-hook='avp-badge']"
