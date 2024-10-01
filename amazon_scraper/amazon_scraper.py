@@ -14,7 +14,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 
-CONFIG: dict[str, Any] = {}
+from .configuration import ConfigStore, ConfigValue
+
+# CONFIG: dict[str, Any] = {}
+
+ConfigStore.configure_context(source='config/config.yml')
 
 
 def find_webdriver_parent(
@@ -98,7 +102,8 @@ def find_element(
     Returns:
         webdriver.remote.webelement.WebElement | None: A Selenium WebElement or None.
     """
-    config = CONFIG.get(key)
+    selectors: dict[str, Any] = ConfigValue("selectors").resolve()
+    config = selectors.get(key)
     if not config:
         return None
     if isinstance(config, str):
@@ -136,7 +141,9 @@ def wait_element(
     Raises:
         NoSuchElementException: If the element is not found after the timeout.
     """
-    config = CONFIG.get(key)
+    selectors: dict[str, Any] = ConfigValue("selectors").resolve()
+
+    config = selectors.get(key)
     if not config:
         return
     if isinstance(config, str):
@@ -292,9 +299,13 @@ def get_products(driver: webdriver.remote.webdriver.WebDriver, page: str, base_u
     Returns:
         list[dict]: List of products.
     """
+    selectors: dict[str, Any] = ConfigValue("selectors").resolve()
+
     driver.get(page)
     wait_page_ready(driver)
-    elements: list[webdriver.remote.webelement.WebElement] = driver.find_elements(By.CSS_SELECTOR, CONFIG["products"])
+    elements: list[webdriver.remote.webelement.WebElement] = driver.find_elements(
+        By.CSS_SELECTOR, selectors["products"]
+    )
 
     products = []
 
@@ -626,6 +637,7 @@ def get_reviews(
     Returns:
         list[dict] | None: List of reviews or None.
     """
+    selectors: dict[str, Any] = ConfigValue("selectors").resolve()
 
     url = f"{base_url}/product-reviews/{asin}"
     driver.get(url)
@@ -640,7 +652,7 @@ def get_reviews(
 
     # TODO: Add function get_element_with_attribute_value
     reviews_button: webdriver.remote.webelement.WebElement | None = None
-    for selector in CONFIG.get("reviews_stars_button", []):
+    for selector in selectors.get("reviews_stars_button", []):
         if driver.find_element(By.CSS_SELECTOR, selector).get_attribute("textContent") == "All stars":
             reviews_button = driver.find_element(By.CSS_SELECTOR, selector)
             break
@@ -659,7 +671,7 @@ def get_reviews(
 
     driver.refresh()  # NOTE: Prevents stale element exception
 
-    elements = driver.find_elements(By.CSS_SELECTOR, CONFIG["review_elements"])
+    elements = driver.find_elements(By.CSS_SELECTOR, selectors["review_elements"])
     for element in elements:
         review = {
             "asin": asin,
@@ -729,35 +741,44 @@ def export_reviews(
     driver.quit()
 
 
-def load_config(config_file: str) -> None:
-    global CONFIG
-    CONFIG = load_yaml(config_file)
+# def load_config(config_file: str) -> None:
+#     global CONFIG
+#     CONFIG = load_yaml(config_file)
 
 
-def load_selectors(config_file: str) -> None:
-    global CONFIG
-    selectors = load_yaml(config_file)
-    CONFIG = {**CONFIG, **selectors}
+# def load_selectors(config_file: str) -> None:
+#     global CONFIG
+#     selectors = load_yaml(config_file)
+#     CONFIG = {**CONFIG, **selectors}
 
 
-def main(options: str, selectors: str, domain: str, keyword: str, output_directory: str | None = None) -> None:
+# @inject_config
+def main(
+    options: str,
+    # selectors: str,
+    domain: str,
+    keyword: str,
+    output_directory: str | None = None,
+    # max_results=ConfigValue("options.max_results"),
+    # max_pages=ConfigValue("options.max_search_result_pages"),
+) -> None:
     # TODO: Separate options and selectors, i.e. options.yaml to CONFIG and selectors.yaml to SELECTORS
-    load_config(options)
-    load_selectors(selectors)
+    options: dict[str, Any] = ConfigValue("options").resolve()
 
     base_url = f"https://www.amazon.{domain}"
 
-    max_results = CONFIG.get("max_results")
-    max_pages = CONFIG.get("max_search_result_pages")
-
     output_directory = output_directory or f"output/{keyword}_{domain}_{time.strftime('%Y%m%d')}"
 
-    for level in CONFIG.get("log_levels", []):
+    for level in options.get("log_levels", []):
         logger.add(f"{output_directory}/{level}.log", level=level.upper())
 
     # Scrape
     results = search_amazon(
-        base_url, keyword, max_results=max_results, max_search_result_pages=max_pages, output_directory=output_directory
+        base_url,
+        keyword,
+        max_results=options.get("max_results"),
+        max_search_result_pages=options.get("max_search_result_pages"),
+        output_directory=output_directory,
     )
 
     # Add sort_title to results
@@ -767,15 +788,15 @@ def main(options: str, selectors: str, domain: str, keyword: str, output_directo
 
     save_results(results, output_directory, base_url, keyword)
 
-    if CONFIG.get("save_images"):
+    if options.get("save_images"):
         logger.info("Saving images")
         save_images_from_results(results, output_directory, subdir_key="sort_id")
 
-    if CONFIG.get("save_description_images"):
+    if options.get("save_description_images"):
         logger.info("Saving description images")
         save_description_images(results, output_directory, subdir_key="sort_id")
 
-    if CONFIG.get("save_full_page_images"):
+    if options.get("save_full_page_images"):
         logger.info("Saving full page images")
         driver = webdriver.Firefox()
         for result in results:
@@ -784,7 +805,7 @@ def main(options: str, selectors: str, domain: str, keyword: str, output_directo
             )
         driver.quit()
 
-    for sentiment in CONFIG.get("export_reviews", []):
+    for sentiment in options.get("export_reviews", []):
         logger.info(f"Exporting {sentiment} reviews")
         export_reviews(results, output_directory, sentiment=sentiment)
 

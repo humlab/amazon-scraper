@@ -27,6 +27,7 @@ notes:
 	@poetry run pylint --notes=FIXME,XXX,TODO --disable=all --enable=W0511 -f colorized $(SOURCE_FOLDERS)
 .PHONY: notes
 
+mypy: export PYTHONPATH=.
 mypy:
 	@poetry run mypy $(MYPY_ARGS) $(SOURCE_FOLDERS) || true
 .PHONY: mypy

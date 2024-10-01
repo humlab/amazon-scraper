@@ -11,6 +11,7 @@ loguru = "^0.7.2"
 pyyaml = "^6.0.2"
 requests = "^2.32.3"
 selenium = "^4.23.1"
+python-dotenv = "^1.0.1"
 
 
 [tool.poetry.group.dev.dependencies]
