@@ -11,6 +11,7 @@ def driver():
     driver.quit()
 
 
+# NOTE: This test will fail beacause this case is not handled in the code.
 def test_get_reviews_when_no_reviews(driver):
     asin = "B005MTXL46"
     base_url = "https://www.amazon.com"
