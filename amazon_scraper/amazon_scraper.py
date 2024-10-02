@@ -14,7 +14,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 
-from .configuration import ConfigStore, ConfigValue
+from configuration import ConfigStore, ConfigValue
 
 # CONFIG: dict[str, Any] = {}
 
@@ -754,7 +754,7 @@ def export_reviews(
 
 # @inject_config
 def main(
-    options: str,
+    # options: dict[str, Any],
     # selectors: str,
     domain: str,
     keyword: str,
@@ -762,7 +762,6 @@ def main(
     # max_results=ConfigValue("options.max_results"),
     # max_pages=ConfigValue("options.max_search_result_pages"),
 ) -> None:
-    # TODO: Separate options and selectors, i.e. options.yaml to CONFIG and selectors.yaml to SELECTORS
     options: dict[str, Any] = ConfigValue("options").resolve()
 
     base_url = f"https://www.amazon.{domain}"
@@ -814,4 +813,4 @@ def main(
 
 if __name__ == "__main__":
 
-    main("config/options.yaml", "config/selectors.yaml", "co.uk", "juice press")
+    main("co.uk", "juice press")
