@@ -14,9 +14,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 
-from configuration import ConfigStore, ConfigValue
-
-# CONFIG: dict[str, Any] = {}
+from amazon_scraper.configuration import ConfigStore, ConfigValue  # FIXME: #1 Fix import
 
 ConfigStore.configure_context(source='config/config.yml')
 
@@ -416,8 +414,8 @@ def get_product_info(driver: webdriver.remote.webdriver.WebDriver, url: str) -> 
     if find_element(driver, "description"):
         description_image_urls = [
             image.get_attribute("src")
-            for image in find_element(driver, "description").find_elements(By.TAG_NAME, "img")
-            if not image.get_attribute("src").endswith("gif")
+            for image in find_element(driver, "description").find_elements(By.TAG_NAME, "img")  # type: ignore
+            if not image.get_attribute("src").endswith("gif") # type: ignore
         ]
     else:
         description_image_urls = []
@@ -741,26 +739,10 @@ def export_reviews(
     driver.quit()
 
 
-# def load_config(config_file: str) -> None:
-#     global CONFIG
-#     CONFIG = load_yaml(config_file)
-
-
-# def load_selectors(config_file: str) -> None:
-#     global CONFIG
-#     selectors = load_yaml(config_file)
-#     CONFIG = {**CONFIG, **selectors}
-
-
-# @inject_config
 def main(
-    # options: dict[str, Any],
-    # selectors: str,
     domain: str,
     keyword: str,
     output_directory: str | None = None,
-    # max_results=ConfigValue("options.max_results"),
-    # max_pages=ConfigValue("options.max_search_result_pages"),
 ) -> None:
     options: dict[str, Any] = ConfigValue("options").resolve()
 
@@ -813,4 +795,4 @@ def main(
 
 if __name__ == "__main__":
 
-    main("co.uk", "juice press")
+    main("co.uk", "laptop")
