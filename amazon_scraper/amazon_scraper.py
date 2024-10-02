@@ -415,7 +415,7 @@ def get_product_info(driver: webdriver.remote.webdriver.WebDriver, url: str) -> 
         description_image_urls = [
             image.get_attribute("src")
             for image in find_element(driver, "description").find_elements(By.TAG_NAME, "img")  # type: ignore
-            if not image.get_attribute("src").endswith("gif") # type: ignore
+            if not image.get_attribute("src").endswith("gif")  # type: ignore
         ]
     else:
         description_image_urls = []
