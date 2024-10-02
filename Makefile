@@ -43,6 +43,7 @@ clean:
 	@rm -rf tests/output
 .PHONY: clean
 
+test: export PYTHONPATH=.
 test:
 	@poetry run pytest --durations=0 tests/
 .PHONY: test
