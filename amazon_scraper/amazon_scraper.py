@@ -14,7 +14,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 
-from amazon_scraper.configuration import ConfigStore, ConfigValue  # FIXME: #1 Fix import
+from amazon_scraper.configuration import ConfigStore, ConfigValue  # type: ignore
 
 ConfigStore.configure_context(source='config/config.yml')
 
@@ -650,20 +650,22 @@ def get_reviews(
 
     # TODO: Add function get_element_with_attribute_value
     reviews_button: webdriver.remote.webelement.WebElement | None = None
-    for selector in selectors.get("reviews_stars_button", []):
-        if driver.find_element(By.CSS_SELECTOR, selector).get_attribute("textContent") == "All stars":
-            reviews_button = driver.find_element(By.CSS_SELECTOR, selector)
-            break
-
-    if reviews_button is None:
-        raise NoSuchElementException("Reviews button not found")
+    try:
+        for selector in selectors.get("reviews_stars_button", []):
+            if driver.find_element(By.CSS_SELECTOR, selector).get_attribute("textContent") == "All stars":
+                reviews_button = driver.find_element(By.CSS_SELECTOR, selector)
+                break
+    except NoSuchElementException:
+        logger.warning(f"Reviews button not found for ASIN: {asin}")
+        return None
 
     # NOTE: Better to use?: ActionChains(driver).move_to_element(reviews_button).click().perform()
     reviews_button.click()
 
     sentiment_dropdown = find_element(driver, f"{sentiment}_reviews")
     if sentiment_dropdown is None:
-        raise ValueError("Unable to find reviews dropdown")
+        logger.warning(f"Unable to find reviews dropdown for ASIN: {asin} and sentiment: {sentiment}")
+        return None
 
     sentiment_dropdown.click()
 
