@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 from selenium import webdriver
 
@@ -6,16 +8,21 @@ from amazon_scraper.amazon_scraper import get_reviews
 
 @pytest.fixture
 def driver():
-    driver = webdriver.Firefox()
+    options = webdriver.FirefoxOptions()
+    options.add_argument('-headless')
+    driver = webdriver.Firefox(options=options)
     yield driver
     driver.quit()
 
 
-# NOTE: This test will fail beacause this case is not handled in the code.
-def test_get_reviews_when_no_reviews(driver):
+def test_get_reviews_when_no_reviews(driver, caplog):
     asin = "B005MTXL46"
     base_url = "https://www.amazon.com"
 
-    reviews = get_reviews(driver, base_url, asin, "positive")
+    with caplog.at_level(logging.WARNING):
+        reviews = get_reviews(driver, base_url, asin, "positive")
 
-    assert reviews
+    assert reviews is None
+
+    log_messages = [record.message for record in caplog.records]
+    assert f"Reviews button not found for ASIN: {asin}" in log_messages
