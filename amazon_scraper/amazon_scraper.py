@@ -675,7 +675,8 @@ def get_reviews(
         return None
 
     # NOTE: Better to use?: ActionChains(driver).move_to_element(reviews_button).click().perform()
-    reviews_button.click()
+    if reviews_button is not None:
+        reviews_button.click()
 
     sentiment_dropdown = find_element(driver, f"{sentiment}_reviews")
     if sentiment_dropdown is None:
