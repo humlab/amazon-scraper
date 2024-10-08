@@ -14,10 +14,13 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 
-from amazon_scraper.configuration import ConfigStore, ConfigValue  # type: ignore
+from configuration import ConfigStore, ConfigValue  # type: ignore
 
-ConfigStore.configure_context(source='config/config.yml')
-
+def get_driver() -> webdriver.remote.webdriver.WebDriver:
+    options = webdriver.FirefoxOptions()
+    options.add_argument('-headless')
+    driver = webdriver.Firefox(options=options)
+    return driver
 
 def find_webdriver_parent(
     item: webdriver.remote.webdriver.WebDriver | webdriver.remote.webelement.WebElement, depth: int = 0
@@ -471,7 +474,7 @@ def get_product_info_by_asin(
         dict: Product information.
     """
     if driver is None:
-        driver = webdriver.Firefox()
+        driver = get_driver()
     url = f"{base_url}/dp/{asin}"
     return get_product_info(driver, url)
 
@@ -502,7 +505,7 @@ def save_webpage_as_png(driver: webdriver.remote.webdriver.WebDriver | None, url
         filename (str): Output filename.
     """
     if driver is None:
-        driver = webdriver.Firefox()
+        driver = get_driver()
     driver.get(url)
 
     WebDriverWait(driver, 30).until(lambda driver: driver.execute_script("return document.readyState") == "complete")
@@ -545,38 +548,50 @@ def search_amazon(
     """
     logger.info(f"Searching for {keyword} on {base_url}")
 
-    driver = webdriver.Firefox()
+    driver = get_driver()
+    try:
+        pages: list[str] = get_search_result_pages(driver, base_url, keyword, max_search_result_pages)
 
-    pages = get_search_result_pages(driver, base_url, keyword, max_search_result_pages)
+        if output_directory:
+            for index, page in enumerate(pages, start=1):
+                save_webpage_as_png(driver, page, f"{output_directory}/search_page_{str(index).zfill(2)}.png")
 
-    if output_directory:
-        for index, page in enumerate(pages, start=1):
-            save_webpage_as_png(driver, page, f"{output_directory}/search_page_{str(index).zfill(2)}.png")
+        search_results = []
+        for page in pages:
+            try:
+                search_results += get_products(driver, page, base_url)
+                if max_results and len(search_results) >= max_results:
+                    logger.info(f"Found {max_results} results. Stopping search.")
+                    break
+            except Exception as e:
+                logger.error(f"Error processing page {page}: {e}")
+                continue
 
-    search_results = []
-    for page in pages:
-        search_results += get_products(driver, page, base_url)
-        if max_results and len(search_results) >= max_results:
-            logger.info(f"Found {max_results} results. Stopping search.")
-            break
+        if max_results:
+            search_results = search_results[:max_results]
 
-    if max_results:
-        search_results = search_results[:max_results]
-
-    sort_id = 1
-    for result in search_results:
-        product_info = get_product_info(driver, result["url"])
-        result.update(product_info)
-        tld = urlparse(base_url).netloc.split('.')[-1]
-        result["tld"] = tld
-        result["keyword"] = keyword
-        result["sort_id"] = f"{str(sort_id).zfill(4)}"
-        result["image_names"] = [
-            f"{result['sort_id']}{chr(97+index)}.{result['image_urls'][index].split('.')[-1]}"
-            for index, _ in enumerate(result["image_urls"])
-        ]
-        sort_id += 1
-    driver.quit()
+        sort_id = 1
+        for result in search_results:
+            try:
+                product_info = get_product_info(driver, result["url"])
+                result.update(product_info)
+                tld = urlparse(base_url).netloc.split('.')[-1]
+                result["tld"] = tld
+                result["keyword"] = keyword
+                result["sort_id"] = f"{str(sort_id).zfill(4)}"
+                result["image_names"] = [
+                    f"{result['sort_id']}{chr(97+index)}.{result['image_urls'][index].split('.')[-1]}"
+                    for index, _ in enumerate(result["image_urls"])
+                ]
+                sort_id += 1
+            except Exception as e:
+                logger.error(f"Error processing product {result['url']}: {e}")
+                continue
+    except Exception as e:
+        logger.error(f"Error searching for {keyword}: {e}")
+        search_results = []
+    finally:
+        driver.quit()
 
     return search_results
 
@@ -591,7 +606,7 @@ def save_images_from_results(results: list[dict], directory: str, subdir_key: st
     """
     for result in results:
         subdirectory = result[subdir_key]
-        result_directory = f"{directory}/{subdirectory}"
+        result_directory: str = f"{directory}/{subdirectory}"
         save_images(result["image_urls"], result["image_names"], result_directory)
 
 
@@ -721,80 +736,25 @@ def export_reviews(
     if not all(key in results[0] for key in ["asin", "sort_id"]):
         raise ValueError("Results do not contain 'asin' and 'sort_id' keys")
 
-    driver = webdriver.Firefox()
-    for result in results:
-        asin = result["asin"]
-        sort_id = result["sort_id"]
-        # FIXME: Use global base_url, use argument or use config. Use argument: default_base_url = "https://www.amazon.com"
-        base_url = result.get("simplified_url", "https://www.amazon.com").split("/dp/")[0]
-        reviews = get_reviews(driver, base_url, asin, sentiment)
-        filename = f"{output_directory}/{sort_id}/{sort_id}_{sentiment}_reviews.csv"
-        if not reviews:
-            logger.info(f"No {sentiment} reviews found for {sort_id}. ASIN: {asin}.")
-            if create_empty_files:
-                logger.info(f"Creating empty file: {filename}")
-                Path(filename).parent.mkdir(parents=True, exist_ok=True)
-                with open(filename, "w", newline="", encoding="utf-8") as file:
-                    file.write('')
-            continue
-        save_reviews(reviews, filename)
-    driver.quit()
-
-
-def main(
-    domain: str,
-    keyword: str,
-    output_directory: str | None = None,
-) -> None:
-    options: dict[str, Any] = ConfigValue("options").resolve()
-
-    base_url = f"https://www.amazon.{domain}"
-
-    output_directory = output_directory or f"output/{keyword}_{domain}_{time.strftime('%Y%m%d')}"
-
-    for level in options.get("log_levels", []):
-        logger.add(f"{output_directory}/{level}.log", level=level.upper())
-
-    # Scrape
-    results = search_amazon(
-        base_url,
-        keyword,
-        max_results=options.get("max_results"),
-        max_search_result_pages=options.get("max_search_result_pages"),
-        output_directory=output_directory,
-    )
-
-    # Add sort_title to results
-    for result in results:
-        result["sort_title"] = f"{result['sort_id']}_{result['title']}"
-    results = [{**{"sort_title": result.pop("sort_title")}, **result} for result in results]
-
-    save_results(results, output_directory, base_url, keyword)
-
-    if options.get("save_images"):
-        logger.info("Saving images")
-        save_images_from_results(results, output_directory, subdir_key="sort_id")
-
-    if options.get("save_description_images"):
-        logger.info("Saving description images")
-        save_description_images(results, output_directory, subdir_key="sort_id")
-
-    if options.get("save_full_page_images"):
-        logger.info("Saving full page images")
-        driver = webdriver.Firefox()
+    driver = get_driver()
+    try:
         for result in results:
-            save_webpage_as_png(
-                driver, result["url"], f"{output_directory}/{result['sort_id']}/{result['sort_id']}_full_page.png"
-            )
+            asin = result["asin"]
+            sort_id = result["sort_id"]
+            # FIXME: Use global base_url, use argument or use config. Use argument: default_base_url = "https://www.amazon.com"
+            base_url = result.get("simplified_url", "https://www.amazon.com").split("/dp/")[0]
+            reviews = get_reviews(driver, base_url, asin, sentiment)
+            filename = f"{output_directory}/{sort_id}/{sort_id}_{sentiment}_reviews.csv"
+            if not reviews:
+                logger.info(f"No {sentiment} reviews found for {sort_id}. ASIN: {asin}.")
+                if create_empty_files:
+                    logger.info(f"Creating empty file: {filename}")
+                    Path(filename).parent.mkdir(parents=True, exist_ok=True)
+                    with open(filename, "w", newline="", encoding="utf-8") as file:
+                        file.write('')
+                continue
+            save_reviews(reviews, filename)
+    except Exception as e:
+        logger.error(f"Error exporting reviews: {e}")
+    finally:
         driver.quit()
-
-    for sentiment in options.get("export_reviews", []):
-        logger.info(f"Exporting {sentiment} reviews")
-        export_reviews(results, output_directory, sentiment=sentiment)
-
-    logger.success("Scraping completed")
-
-
-if __name__ == "__main__":
-
-    main("co.uk", "laptop")

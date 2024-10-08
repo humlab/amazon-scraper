@@ -1,13 +1,18 @@
+payload:
+  target_folder: ./output
+  domains:
+    - "com"
+  keywords:
+    - "laptop"
+
 options:
   max_results: 2
   max_search_result_pages: 2
-
   domain:
-      - "amazon.com"
-
-  save_images: False
-  save_description_images: False
-  save_full_page_images: False
+    - "amazon.com"
+  save_images: True
+  save_description_images: True
+  save_full_page_images: True
   export_reviews:
       - "positive"
       - "critical"
