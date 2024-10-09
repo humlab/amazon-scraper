@@ -14,7 +14,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.wait import WebDriverWait
 
-from configuration import ConfigStore, ConfigValue  # type: ignore
+from .configuration import ConfigValue  # type: ignore
 
 def get_driver() -> webdriver.remote.webdriver.WebDriver:
     options = webdriver.FirefoxOptions()
