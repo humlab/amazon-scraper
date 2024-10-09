@@ -1,0 +1,32 @@
+import logging
+
+import pytest
+from selenium import webdriver
+
+from amazon_scraper.amazon_scraper import get_search_result_pages
+
+
+@pytest.fixture
+def driver():
+    options = webdriver.FirefoxOptions()
+    options.add_argument('-headless')
+    driver = webdriver.Firefox(options=options)
+    yield driver
+    driver.quit()
+
+
+@pytest.mark.web
+class TestGetSearchResultPages:
+    @pytest.mark.slow
+    def test_get_search_result_pages_with_only_one_result_page(self, driver, caplog):
+        base_url = "https://www.amazon.com"
+        keyword = "nonexistentproduct"
+        max_search_result_pages = 1
+
+        with caplog.at_level(logging.INFO):
+            search_result_pages = get_search_result_pages(driver, base_url, keyword, max_search_result_pages)
+
+        assert len(search_result_pages) == 1
+        assert search_result_pages[0].startswith(f"{base_url}/s?k={keyword}")
+        log_messages = [record.message for record in caplog.records]
+        assert "Found only one page." in log_messages
