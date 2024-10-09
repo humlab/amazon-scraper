@@ -17,6 +17,7 @@ from configuration import ConfigStore, ConfigValue  # type: ignore
 
 ConfigStore.configure_context(source='config/config.yml')
 
+
 def scrape_workflow(options: dict[str, Any], keyword, domain) -> None:
 
     base_url: str = f"https://www.amazon.{domain}"
@@ -57,9 +58,7 @@ def scrape_workflow(options: dict[str, Any], keyword, domain) -> None:
         for result in results:
             try:
                 target_filename: str = f"{output_directory}/{result['sort_id']}/{result['sort_id']}_full_page.png"
-                save_webpage_as_png(
-                    driver, result["url"], target_filename
-                )
+                save_webpage_as_png(driver, result["url"], target_filename)
             except Exception as e:
                 logger.error(f"Error saving full page image to {target_filename}: {e}")
                 continue
@@ -69,10 +68,11 @@ def scrape_workflow(options: dict[str, Any], keyword, domain) -> None:
         logger.info(f"Exporting {sentiment} reviews")
         export_reviews(results, output_directory, sentiment=sentiment)
 
+
 @click.command()
 @click.option("--domain", default=None, help="Amazon domain to scrape")
 @click.option("--keyword", default=None, help="Keyword to search for")
-def main( domain: str, keyword: str ) -> None:
+def main(domain: str, keyword: str) -> None:
     options: dict[str, Any] = ConfigValue("options").resolve()
 
     domains: list[str] = [domain] if domain else ConfigValue("payload.domains").resolve()

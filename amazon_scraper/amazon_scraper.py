@@ -16,11 +16,13 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from .configuration import ConfigValue  # type: ignore
 
+
 def get_driver() -> webdriver.remote.webdriver.WebDriver:
     options = webdriver.FirefoxOptions()
     options.add_argument('-headless')
     driver = webdriver.Firefox(options=options)
     return driver
+
 
 def find_webdriver_parent(
     item: webdriver.remote.webdriver.WebDriver | webdriver.remote.webelement.WebElement, depth: int = 0
