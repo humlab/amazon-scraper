@@ -52,6 +52,14 @@ test-no-web:
 	@poetry run pytest -m "not web" --durations=0 tests/
 .PHONY: test-no-web
 
+test-no-slow:
+	@poetry run pytest -m "not slow" --durations=0 tests/
+.PHONY: test-no-slow
+
+test-no-slow-no-web:
+	@poetry run pytest -m "not slow and not web" --durations=0 tests/
+.PHONY: test-no-slow-no-web
+
 test-coverage:
 	@poetry run pytest --durations=0 --cov=$(PACKAGE_FOLDER) --cov-report=xml --cov-report=html --cov-branch tests/
 .PHONY: test-coverage
@@ -63,6 +71,7 @@ test-web:
 test-retest:
 	@poetry run pytest --durations=0 --last-failed tests
 .PHONY: test-retest
+
 
 help:
 	@echo "black:			Run black formatter"
@@ -76,6 +85,8 @@ help:
 	@echo "clean:			Remove all temporary files"
 	@echo "test:			Run all tests"
 	@echo "test-no-web:		Run all tests except the ones that require internet connection"
+	@echo "test-no-slow:		Run all tests except the slow ones"
+	@echo "test-no-slow-no-web:	Run all tests except the slow ones and the ones that require internet connection"
 	@echo "test-coverage:		Run all tests and generate coverage report"
 	@echo "test-web:		Run only tests that require internet connection"
 	@echo "test-retest:		Run only the tests that failed in the last run"
