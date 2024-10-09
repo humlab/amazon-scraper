@@ -78,10 +78,10 @@ def main(domain: str, keyword: str) -> None:
     domains: list[str] = [domain] if domain else ConfigValue("payload.domains").resolve()
     keywords: list[str] = [keyword] if keyword else ConfigValue("payload.keywords").resolve()
 
-    for domain in domains:
-        for keyword in keywords:
-            logger.info(f"Scraping {keyword} on {domain}")
-            scrape_workflow(options, keyword, domain)
+    for d in domains:
+        for k in keywords:
+            logger.info(f"Scraping {k} on {d}")
+            scrape_workflow(options, k, d)
 
     logger.success("Scraping completed")
 
