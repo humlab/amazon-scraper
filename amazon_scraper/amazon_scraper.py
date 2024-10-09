@@ -241,7 +241,7 @@ def accept_cookies(driver: webdriver.remote.webdriver.WebDriver) -> None:
 def get_search_result_pages(
     driver: webdriver.remote.webdriver.WebDriver, url: str, keyword: str, max_search_result_pages: int | None = None
 ) -> list[str]:
-    """Get search result pages from a search engine.
+    """Get search result pages from a search engine. The function searches for a keyword and returns a list of search result pages. If the maximum number of search result pages is set, the function returns the specified number of pages. If the search box is not found, the function raises a NoSuchElementException. If the number of pages is 0, the function logs a warning. If only one page is found, the function logs an info message and returns a list with one page, the current URL.
 
     Args:
         driver (webdriver.remote.webdriver.WebDriver): A Selenium WebDriver instance.
@@ -251,7 +251,6 @@ def get_search_result_pages(
 
     Raises:
         NoSuchElementException: If the search box is not found.
-        ValueError: If the number of pages is 0.
 
     Returns:
         list[str]: List of search result pages.
@@ -268,26 +267,36 @@ def get_search_result_pages(
     wait_page_ready(driver)
     reject_cookies(driver)
 
-    wait_element(driver, "number_of_pages")
-    attrib = find_attribute(driver, "number_of_pages", "textContent", default='0')
+    try:
+        wait_element(driver, "number_of_pages")
+        attrib = find_attribute(driver, "number_of_pages", "textContent", default='0')
 
-    number_of_pages = int(attrib)
-    if number_of_pages == 0:
-        raise ValueError("Number of pages is 0")
+        number_of_pages = int(attrib)
+        if number_of_pages == 0:
+            logger.warning("Number of pages is 0")  # FIXME: Unnecessary warning? Raise exception?
 
-    number_of_pages = int(find_attribute(driver, "number_of_pages", "textContent", default='1'))
+        number_of_pages = int(find_attribute(driver, "number_of_pages", "textContent", default='1'))
 
-    logger.info(f"Found {number_of_pages} pages")
+        logger.info(f"Found {number_of_pages} pages")
 
-    number_of_pages = min(number_of_pages, max_search_result_pages) if max_search_result_pages else number_of_pages
-    logger.info(f"Max search result pages set to {max_search_result_pages}. Returning {number_of_pages} pages")
+        number_of_pages = min(number_of_pages, max_search_result_pages) if max_search_result_pages else number_of_pages
+        logger.info(f"Max search result pages set to {max_search_result_pages}. Returning {number_of_pages} pages")
 
-    pages = (
-        [driver.current_url]
-        + [f"{driver.current_url.replace('nb_sb_noss', f'sr_pg_{p}')}&page={p+1}" for p in range(1, number_of_pages)]
-        if number_of_pages > 1
-        else [driver.current_url]
-    )
+        pages = (
+            [driver.current_url]
+            + [
+                f"{driver.current_url.replace('nb_sb_noss', f'sr_pg_{p}')}&page={p+1}"
+                for p in range(1, number_of_pages)
+            ]
+            if number_of_pages > 1
+            else [driver.current_url]
+        )
+    except NoSuchElementException:
+        logger.info("Found only one page.")
+        pages = [driver.current_url]
+    except Exception as e:
+        logger.error(f"Error getting search result pages: {e}")
+        pages = [driver.current_url]
     return pages
 
 
@@ -589,6 +598,9 @@ def search_amazon(
             except Exception as e:
                 logger.error(f"Error processing product {result['url']}: {e}")
                 continue
+    except NoSuchElementException as e:
+        logger.error(f"Error searching for {keyword}: {e}")
+        search_results = []
     except Exception as e:
         logger.error(f"Error searching for {keyword}: {e}")
         search_results = []
