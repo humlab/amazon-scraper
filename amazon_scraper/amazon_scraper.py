@@ -413,62 +413,81 @@ def get_product_info(driver: webdriver.remote.webdriver.WebDriver, url: str) -> 
     Returns:
         dict: Product information.
     """
-    driver.get(url)
+    for _ in range(3):
+        try:
+            driver.get(url)
 
-    wait_page_ready(driver)
+            wait_page_ready(driver)
 
-    title = find_attribute(driver, "title", "innerText")
-    price = find_attribute(driver, "price", "innerText")
-    image_link = find_attribute(driver, "image", "src")
-    about = find_attribute(driver, "about", "innerText", default="").strip()
+            title = find_attribute(driver, "title", "innerText")
+            price = find_attribute(driver, "price", "innerText")
+            image_link = find_attribute(driver, "image", "src")
+            about = find_attribute(driver, "about", "innerText", default="").strip()
 
-    product_description = find_attribute(driver, "description", "innerText", default="IMAGE_DESCRIPTION_ONLY").strip()
+            product_description = find_attribute(
+                driver, "description", "innerText", default="IMAGE_DESCRIPTION_ONLY"
+            ).strip()
 
-    # FIXME: Check if there are images in the product description
-    if find_element(driver, "description"):
-        description_image_urls = [
-            image.get_attribute("src")
-            for image in find_element(driver, "description").find_elements(By.TAG_NAME, "img")  # type: ignore
-            if not image.get_attribute("src").endswith("gif")  # type: ignore
-        ]
-    else:
-        description_image_urls = []
+            # FIXME: Check if there are images in the product description
+            if find_element(driver, "description"):
+                description_image_urls = [
+                    image.get_attribute("src")
+                    for image in find_element(driver, "description").find_elements(By.TAG_NAME, "img")  # type: ignore
+                    if not image.get_attribute("src").endswith("gif")  # type: ignore
+                ]
+            else:
+                description_image_urls = []
 
-    details = find_attribute(driver, "details", "innerText", default="")
-    product_details = {
-        key: value
-        for line in details.split("\n")
-        if (parts := line.split('\t', 1)) and len(parts) == 2
-        for key, value in [parts]
-    }
+            details = find_attribute(driver, "details", "innerText", default="")
+            product_details = {
+                key: value
+                for line in details.split("\n")
+                if (parts := line.split('\t', 1)) and len(parts) == 2
+                for key, value in [parts]
+            }
 
-    rating = find_attribute(driver, "rating", "innerText", default="").strip()
-    number_of_ratings = find_attribute(driver, "number_of_ratings", "innerText", default="")
-    number_of_ratings = "".join([c for c in number_of_ratings if c.isdigit()])
+            rating = find_attribute(driver, "rating", "innerText", default="").strip()
+            number_of_ratings = find_attribute(driver, "number_of_ratings", "innerText", default="")
+            number_of_ratings = "".join([c for c in number_of_ratings if c.isdigit()])
 
-    store = find_attribute(driver, "store", "innerText", default="")
-    # FIXME: Fix for other domains (e.g. amazon.de, amazon.se). Add to config.
-    store = store.replace("Visit the ", "").replace("Brand: ", "").replace(" Store", "").replace(" Brand", "").strip()
+            store = find_attribute(driver, "store", "innerText", default="")
+            # FIXME: Fix for other domains (e.g. amazon.de, amazon.se). Add to config.
+            store = (
+                store.replace("Visit the ", "")
+                .replace("Brand: ", "")
+                .replace(" Store", "")
+                .replace(" Brand", "")
+                .strip()
+            )
 
-    store_url = find_attribute(driver, "store", "href")
+            store_url = find_attribute(driver, "store", "href")
 
-    image_urls = get_image_urls(driver)
+            image_urls = get_image_urls(driver)
 
-    return {
-        "title_info": title,
-        "price_info": price,
-        "image_link": image_link,
-        "about": about,
-        "product_description": product_description,
-        "product_details": product_details,
-        "rating": rating,
-        "number_of_ratings": number_of_ratings,
-        "store": store,
-        "store_url": store_url,
-        "image_urls": image_urls,
-        "description_image_urls": description_image_urls or [],
-        "time": time.strftime("%Y-%m-%d %H:%M:%S"),
-    }
+            return {
+                "title_info": title,
+                "price_info": price,
+                "image_link": image_link,
+                "about": about,
+                "product_description": product_description,
+                "product_details": product_details,
+                "rating": rating,
+                "number_of_ratings": number_of_ratings,
+                "store": store,
+                "store_url": store_url,
+                "image_urls": image_urls,
+                "description_image_urls": description_image_urls or [],
+                "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+            }
+        except TimeoutError as e:
+            logger.error(f"Timeout error: {e}")
+            time.sleep(30)
+            continue
+        except Exception as e:
+            logger.error(f"Error getting product information: {e}")
+            return {}
+
+    return {}
 
 
 def get_product_info_by_asin(
@@ -585,6 +604,10 @@ def search_amazon(
         for result in search_results:
             try:
                 product_info = get_product_info(driver, result["url"])
+
+                if not product_info:
+                    continue
+
                 result.update(product_info)
                 tld = urlparse(base_url).netloc.split('.')[-1]
                 result["tld"] = tld
@@ -594,7 +617,9 @@ def search_amazon(
                     f"{result['sort_id']}{chr(97+index)}.{result['image_urls'][index].split('.')[-1]}"
                     for index, _ in enumerate(result["image_urls"])
                 ]
+
                 sort_id += 1
+
             except Exception as e:
                 logger.error(f"Error processing product {result['url']}: {e}")
                 continue
