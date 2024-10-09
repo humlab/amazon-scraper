@@ -18,7 +18,7 @@ from configuration import ConfigStore, ConfigValue  # type: ignore
 ConfigStore.configure_context(source='config/config.yml')
 
 
-def scrape_workflow(options: dict[str, Any], keyword, domain) -> None:
+def scrape_workflow(options: dict[str, Any], keyword: str, domain: str) -> None:
 
     base_url: str = f"https://www.amazon.{domain}"
     target_root: str = ConfigValue("payload.target_folder", mandatory=True).resolve()
