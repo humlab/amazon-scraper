@@ -2,12 +2,31 @@ payload:
   target_folder: ./output
   domains:
     - "com"
+    - "de"
+    - "co.uk"
   keywords:
-    - "laptop"
+    - house blessing
+    - mezuzah
+    - prayer shawl
+    - shofar
+    - tallit
+    - torah scroll
+    - menorah
+    - chanukkiah
+    - kiddush
+    - kiddush cup
+    - havdalah
+    - tefillin
+    - star of david
+    - seder
+    - seder plate
+    - challah
+    - matzoh
 
 options:
-  max_results: 2
-  max_search_result_pages: 2
+  max_results: 50
+  max_search_result_pages: False
+  # FIXME: is this used?
   domain:
     - "amazon.com"
   save_images: True
@@ -16,7 +35,6 @@ options:
   export_reviews:
       - "positive"
       - "critical"
-      - "3_star"
   log_levels:
       - "info"
       - "debug"
@@ -39,10 +57,10 @@ selectors:
   sponsored: "a.puis-label-popover.puis-sponsored-label-text"
 
   title: "span#productTitle"
-  price: 
+  price:
       - "#corePriceDisplay_desktop_feature_div > div.a-section.a-spacing-none.aok-align-center.aok-relative > span.aok-offscreen"
       - "#corePrice_feature_div > div > div > span.a-price.aok-align-center > span.a-offscreen"
-  description: 
+  description:
       - "div#productDescription"
       - "#aplus_feature_div > #aplus > div"
 
