@@ -72,6 +72,14 @@ test-retest:
 	@poetry run pytest --durations=0 --last-failed tests
 .PHONY: test-retest
 
+TIMESTAMP_IN_ISO_FORMAT=$(shell date -u +"%Y%m%dT%H%M%SZ")
+
+profile-with-pyinstrument:
+	@echo "Profiling scrape workflow..."
+	@mkdir -p tests/output
+	@PYTHONPATH=. pyinstrument --color --show-all \
+		-o tests/output/$(TIMESTAMP_IN_ISO_FORMAT)_profile_workflow.html \
+			tests/profile_workflow.py
 
 help:
 	@echo "black:			Run black formatter"
