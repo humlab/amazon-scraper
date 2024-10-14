@@ -5,246 +5,27 @@ from typing import Any, Literal
 from urllib.parse import urlparse
 
 import requests
-import yaml
 from loguru import logger
-from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.wait import WebDriverWait
 
-from .configuration import ConfigValue  # type: ignore
-
-
-def get_driver() -> webdriver.remote.webdriver.WebDriver:
-    options = webdriver.FirefoxOptions()
-    options.add_argument('-headless')
-    driver = webdriver.Firefox(options=options)
-    return driver
-
-
-def find_webdriver_parent(
-    item: webdriver.remote.webdriver.WebDriver | webdriver.remote.webelement.WebElement, depth: int = 0
-) -> webdriver.remote.webdriver.WebDriver | None:
-    """Find the parent webdriver object. This function is recursive. The depth parameter is used to prevent infinite recursion.
-
-    Args:
-        item (webdriver.remote.webdriver.WebDriver | webdriver.remote.webelement.WebElement): Webdriver object.
-        depth (int, optional): Recursion depth. Defaults to 0.
-
-    Returns:
-        webdriver.remote.webdriver.WebDriver | None: Parent webdriver object. None if not found.
-    """
-    if depth > 10:  # FIXME: Handle infinite recursion better
-        return None
-    if isinstance(item, webdriver.remote.webdriver.WebDriver):
-        return item
-    if hasattr(item, 'parent'):
-        return find_webdriver_parent(item.parent, depth + 1)
-    return None
-
-
-def wait_page_ready(item: webdriver.remote.webdriver.WebDriver | webdriver.remote.webelement.WebElement) -> None:
-    """Wait for the page to load.
-
-    Args:
-        item (webdriver.remote.webdriver.WebDriver | webdriver.remote.webelement.WebElement): Webdriver object.
-
-    Raises:
-        TimeoutError: If the page does not load.
-
-    Returns:
-        None
-    """
-    item = find_webdriver_parent(item)
-    if item is None:
-        raise ValueError("Parent webdriver object not found")
-    try:
-        WebDriverWait(item, 30).until(lambda driver: driver.execute_script("return document.readyState") == "complete")
-    except TimeoutException as e:
-        raise TimeoutError("Page not loaded") from e
-
-
-def load_yaml(document: str, subset: str | list[str] | None = None) -> Any:
-    """Get data from a YAML file. Optionally, get a subset of the data. Subset is a string or a list of keys.
-
-    Args:
-        document (str): Document path.
-        subset (str or list, optional): String or list of keys. Defaults to None.
-
-    Returns:
-        Any: Data from the YAML file.
-    """
-    with open(document, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-        if subset is not None:
-            if isinstance(subset, str):
-                subset = [subset]
-            for key in subset:
-                data = data.get(key)
-                if data is None:
-                    break
-            return data
-        return data
-
-
-def find_element(
-    item: webdriver.remote.webdriver.WebDriver | webdriver.remote.webelement.WebElement,
-    key: str,
-    *,
-    by: str = By.CSS_SELECTOR,
-) -> webdriver.remote.webelement.WebElement | None:
-    """Find an element using a key from the selectors.yaml file. The key is used to get a CSS selector or a list of CSS selectors from the selectors.yaml file. The function tries each selector until it finds an element. If no element is found, it returns None.
-
-    Args:
-        item (webdriver.remote.webdriver.WebDriver | webdriver.remote.webelement.WebElement): A Selenium WebDriver instance or a WebElement.
-        key (str): Key from the selectors.yaml file.
-        by (str, optional): Selenium By method. Defaults to By.CSS_SELECTOR.
-
-    Returns:
-        webdriver.remote.webelement.WebElement | None: A Selenium WebElement or None.
-    """
-    selectors: dict[str, Any] = ConfigValue("selectors").resolve()
-    config = selectors.get(key)
-    if not config:
-        return None
-    if isinstance(config, str):
-        config = [config]
-
-    wait_page_ready(item)
-
-    for selector in config:
-        try:
-            element = item.find_element(by, selector)
-            return element
-        except NoSuchElementException:
-            logger.debug(f"Element not found: {key}: {selector}. Trying next selector.")
-            continue
-
-    logger.debug(f"Element not found: {key}")
-    return None
-
-
-def wait_element(
-    item: webdriver.remote.webdriver.WebDriver | webdriver.remote.webelement.WebElement,
-    key: str,
-    *,
-    by: str = By.CSS_SELECTOR,
-    timeout: int = 30,
-) -> None:
-    """Wait for an element to appear on the page. The function tries each selector until it finds an element. If no element is found after the timeout, it raises a NoSuchElementException.
-
-    Args:
-        item (webdriver.remote.webdriver.WebDriver | webdriver.remote.webelement.WebElement): A Selenium WebDriver instance or a WebElement.
-        key (str): Key from the selectors.yaml file.
-        by (str, optional): Selenium By method. Defaults to By.CSS_SELECTOR.
-        timeout (int, optional): Timeout in seconds. Defaults to 30.
-
-    Raises:
-        NoSuchElementException: If the element is not found after the timeout.
-    """
-    selectors: dict[str, Any] = ConfigValue("selectors").resolve()
-
-    config = selectors.get(key)
-    if not config:
-        return
-    if isinstance(config, str):
-        config = [config]
-
-    for _ in range(0, timeout):
-        for selector in config:
-            try:
-                item.find_element(by, selector)
-                return
-            except NoSuchElementException:
-                continue
-        time.sleep(1)  # FIXME: Use WebDriverWait instead
-
-    raise NoSuchElementException(f"Element not found: {key}")
-
-
-def find_attribute(
-    item: webdriver.remote.webdriver.WebDriver | webdriver.remote.webelement.WebElement,
-    key: str,
-    attribute: str,
-    *,
-    by: str = By.CSS_SELECTOR,
-    default: Any = None,
-) -> Any:
-    """Find an attribute of an element using a key from the selectors.yaml file. The key is used to get a CSS selector or a list of CSS selectors from the selectors.yaml file. The function tries each selector until it finds an element. If no element is found, it returns the default value.
-
-    Args:
-        item (webdriver.remote.webdriver.WebDriver | webdriver.remote.webelement.WebElement): A Selenium WebDriver instance or a WebElement.
-        key (str): Key from the selectors.yaml file.
-        attribute (str): Attribute name.
-        by (str, optional): Selenium By method. Defaults to By.CSS_SELECTOR.
-        default (Any, optional): Default value. Defaults to None.
-
-    Returns:
-        Any: Attribute value or default value.
-    """
-    element = find_element(item, key, by=by)
-    if element is None:
-        return default
-    return element.get_attribute(attribute)
-
-
-def reject_cookies(driver: webdriver.remote.webdriver.WebDriver) -> None:
-    """Attempts to find and click a button on a web page to reject cookies using Selenium WebDriver. If the button is found, it clicks the button; otherwise, it does nothing.
-
-    Args:
-        driver (webdriver.remote.webdriver.WebDriver): A Selenium WebDriver instance.
-    """
-    wait_page_ready(driver)
-    try:
-        cookies_button = find_element(driver, "reject_cookies")
-        if cookies_button is not None:
-            cookies_button.click()
-    except StaleElementReferenceException:
-        driver.refresh()
-        wait_element(driver, "reject_cookies")
-        cookies_button = find_element(driver, "reject_cookies")
-        if cookies_button is not None:
-            cookies_button.click()
-
-
-def dismiss_popup(driver: webdriver.remote.webdriver.WebDriver, keyword: str) -> None:
-    """Attempts to find and click a button on a web page to dismiss a popup using Selenium WebDriver. If the button is found, it clicks the button; otherwise, it does nothing.
-
-    Args:
-        driver (webdriver.remote.webdriver.WebDriver): A Selenium WebDriver instance.
-    """
-    try:
-        popup_button = find_element(driver, keyword)
-        if popup_button is not None:
-            popup_button.click()
-    except StaleElementReferenceException:
-        driver.refresh()
-        wait_element(driver, keyword)
-        popup_button = find_element(driver, keyword)
-        if popup_button is not None:
-            popup_button.click()
-
-
-def accept_cookies(driver: webdriver.remote.webdriver.WebDriver) -> None:
-    """Attempts to find and click a button on a web page to accept cookies using Selenium WebDriver. If the button is found, it clicks the button; otherwise, it does nothing.
-
-    Args:
-        driver (webdriver.remote.webdriver.WebDriver): _description_
-    """
-    cookies_button = find_element(driver, "accept_cookies")
-    if cookies_button is not None:
-        cookies_button.click()
+from amazon_scraper import scrape_utility as su
+from amazon_scraper.configuration import ConfigValue  # type: ignore
+from amazon_scraper.utility import retry  # type: ignore
 
 
 def get_search_result_pages(
-    driver: webdriver.remote.webdriver.WebDriver, url: str, keyword: str, max_search_result_pages: int | None = None
+    driver: WebDriver, url: str, keyword: str, max_search_result_pages: int | None = None
 ) -> list[str]:
     """Get search result pages from a search engine. The function searches for a keyword and returns a list of search result pages. If the maximum number of search result pages is set, the function returns the specified number of pages. If the search box is not found, the function raises a NoSuchElementException. If the number of pages is 0, the function logs a warning. If only one page is found, the function logs an info message and returns a list with one page, the current URL.
 
     Args:
-        driver (webdriver.remote.webdriver.WebDriver): A Selenium WebDriver instance.
+        driver (WebDriver): A Selenium WebDriver instance.
         url (str): URL of the search engine.
         keyword (str): Search keyword.
         max_search_result_pages (int | None, optional): Maximum number of search result pages. Defaults to None.
@@ -257,32 +38,33 @@ def get_search_result_pages(
     """
     driver.get(url)
 
-    wait_element(driver, "search_box")
-    search_box = find_element(driver, "search_box")
+    su.wait_element(driver, "search_box")
+
+    search_box = su.find_element(driver, "search_box")
     if not search_box:
         raise NoSuchElementException("Search box not found")
     search_box.send_keys(keyword)
     search_box.send_keys(Keys.RETURN)
 
-    wait_page_ready(driver)
-    reject_cookies(driver)
+    su.wait_page_ready(driver)
+    su.reject_cookies(driver)
 
     try:
-        wait_element(driver, "number_of_pages")
-        attrib = find_attribute(driver, "number_of_pages", "textContent", default='0')
+        su.wait_element(driver, "number_of_pages")
+        attrib = su.find_attribute(driver, "number_of_pages", "textContent", default='0')
 
         number_of_pages = int(attrib)
         if number_of_pages == 0:
             logger.warning("Number of pages is 0")  # FIXME: Unnecessary warning? Raise exception?
 
-        number_of_pages = int(find_attribute(driver, "number_of_pages", "textContent", default='1'))
+        number_of_pages = int(su.find_attribute(driver, "number_of_pages", "textContent", default='1'))
 
         logger.info(f"Found {number_of_pages} pages")
 
         number_of_pages = min(number_of_pages, max_search_result_pages) if max_search_result_pages else number_of_pages
         logger.info(f"Max search result pages set to {max_search_result_pages}. Returning {number_of_pages} pages")
 
-        pages = (
+        pages: list[str] = (
             [driver.current_url]
             + [
                 f"{driver.current_url.replace('nb_sb_noss', f'sr_pg_{p}')}&page={p+1}"
@@ -295,16 +77,16 @@ def get_search_result_pages(
         logger.info("Found only one page.")
         pages = [driver.current_url]
     except Exception as e:
-        logger.error(f"Error getting search result pages: {e}")
+        logger.exception(f"Error getting search result pages: {e}")
         pages = [driver.current_url]
     return pages
 
 
-def get_products(driver: webdriver.remote.webdriver.WebDriver, page: str, base_url: str) -> list[dict]:
+def get_products(driver: WebDriver, page: str, base_url: str) -> list[dict]:
     """Get products from a search result page.
 
     Args:
-        driver (webdriver.remote.webdriver.WebDriver): A Selenium WebDriver instance.
+        driver (WebDriver): A Selenium WebDriver instance.
         page (str): URL of the search result page.
         base_url (str): Base URL of the search engine.
 
@@ -314,28 +96,26 @@ def get_products(driver: webdriver.remote.webdriver.WebDriver, page: str, base_u
     selectors: dict[str, Any] = ConfigValue("selectors").resolve()
 
     driver.get(page)
-    wait_page_ready(driver)
-    elements: list[webdriver.remote.webelement.WebElement] = driver.find_elements(
-        By.CSS_SELECTOR, selectors["products"]
-    )
+    su.wait_page_ready(driver)
 
-    products = []
+    elements: list[WebElement] = driver.find_elements(By.CSS_SELECTOR, selectors["products"])
+
+    products: list[dict] = []
 
     for element in elements:
-
         try:
             product = {
-                "title": find_attribute(element, "product_title", "textContent"),
-                "price": find_attribute(element, "product_price", "innerText"),  # 'textContent'
-                "url": find_attribute(element, "product_url", "href"),
+                "title": su.find_attribute(element, "product_title", "textContent"),
+                "price": su.find_attribute(element, "product_price", "innerText"),  # 'textContent'
+                "url": su.find_attribute(element, "product_url", "href"),
                 "asin": (asin := element.get_attribute("data-asin")),
                 "simplified_url": f"{base_url}/dp/{asin}",
-                "is_sponsored": bool(find_attribute(element, "sponsored", "innerText")),
+                "is_sponsored": bool(su.find_attribute(element, "sponsored", "innerText")),
             }
 
             products.append(product)
         except NoSuchElementException as e:
-            logger.error(f"Error processing product: {e}")
+            logger.exception(f"Error processing product: {e}")
             continue
 
     logger.info(f"Processed {len(products)} products on page {page}")
@@ -343,7 +123,7 @@ def get_products(driver: webdriver.remote.webdriver.WebDriver, page: str, base_u
     return products
 
 
-def get_image_urls(driver: webdriver.remote.webdriver.WebDriver, url: str | None = None) -> list[str | None]:
+def get_image_urls(driver: WebDriver, url: str | None = None) -> list[str | None]:
     """Get image links from an Amazon product page.
 
     Args:
@@ -353,36 +133,39 @@ def get_image_urls(driver: webdriver.remote.webdriver.WebDriver, url: str | None
     Returns:
         list[str | None]: A list of image links (URLs).
     """
-    if url:
-        driver.get(url)
-        wait_page_ready(driver)
+    image_urls: list[str] = []
+    try:
+        if url:
+            driver.get(url)
+            su.wait_page_ready(driver)
 
-    if driver.current_url == "about:blank":
-        raise ValueError("No URL provided")
+        if driver.current_url == "about:blank":
+            raise ValueError("No URL provided")
 
-    if "www.amazon" not in driver.current_url:
-        raise ValueError(f"Not an Amazon product page: {driver.current_url}")
+        if "www.amazon" not in driver.current_url:
+            raise ValueError(f"Not an Amazon product page: {driver.current_url}")
 
-    # TODO: Add selector for image links to selectors.yaml. Add find_elements function.
-    elements = driver.find_elements(By.CSS_SELECTOR, "#altImages > ul > li")
-    elements = [element for element in elements if element.size["height"] != 0]
+        # TODO: Add selector for image links to selectors.yaml. Add su.find_elements function.
+        elements = driver.find_elements(By.CSS_SELECTOR, "#altImages > ul > li")
+        elements = [element for element in elements if element.size["height"] != 0]
 
-    actions = ActionChains(driver)
+        actions = ActionChains(driver)
 
-    for element in elements:
-        driver.execute_script("arguments[0].scrollIntoView();", element)
-        actions.move_to_element(element).perform()  # .click(element)
-        time.sleep(1)
+        for element in elements:
+            driver.execute_script("arguments[0].scrollIntoView();", element)
+            actions.move_to_element(element).perform()  # .click(element)
+            time.sleep(1)
 
-    # TODO: Add selector for image links to selectors.yaml. Add find_elements function.
-    image_urls = []
-    for image in driver.find_element(By.CSS_SELECTOR, "#main-image-container").find_elements(By.TAG_NAME, "img"):
-        if image.get_attribute("data-old-hires"):
-            image_urls.append(image.get_attribute("data-old-hires"))
-        else:
-            src = image.get_attribute("src")
-            if src and not src.endswith("gif"):
-                image_urls.append(src)
+        # TODO: Add selector for image links to selectors.yaml. Add su.find_elements function.
+        for image in driver.find_element(By.CSS_SELECTOR, "#main-image-container").find_elements(By.TAG_NAME, "img"):
+            if image.get_attribute("data-old-hires"):
+                image_urls.append(image.get_attribute("data-old-hires"))
+            else:
+                src: str | None = image.get_attribute("src")
+                if src and not src.endswith("gif"):
+                    image_urls.append(src)
+    except Exception as e:
+        logger.exception(f"Error getting image URLs: {e}")
 
     return image_urls
 
@@ -397,17 +180,20 @@ def save_images(urls: list[str], filenames: list[str], directory: str) -> None:
     """
     Path(directory).mkdir(parents=True, exist_ok=True)
     for _, (image_link, filename) in enumerate(zip(urls, filenames)):
-        response = requests.get(image_link, timeout=5)
-        file_extension = Path(image_link).suffix[1:]
-        with open(f"{directory}/{filename}.{file_extension}", "wb") as file:
-            file.write(response.content)
+        try:
+            response: requests.Response = requests.get(image_link, timeout=5)
+            file_extension: str = Path(image_link).suffix[1:]
+            with open(f"{directory}/{filename}.{file_extension}", "wb") as file:
+                file.write(response.content)
+        except Exception as e:
+            logger.exception(f"Error saving image {image_link} to {directory}/{filename}: {e}")
 
 
-def get_product_info(driver: webdriver.remote.webdriver.WebDriver, url: str) -> dict:
+def get_product_info(driver: WebDriver, url: str) -> dict:
     """Get product information from an Amazon product page.
 
     Args:
-        driver (webdriver.remote.webdriver.WebDriver): A Selenium WebDriver instance.
+        driver (WebDriver): A Selenium WebDriver instance.
         url (str): URL of the Amazon product page.
 
     Returns:
@@ -417,28 +203,28 @@ def get_product_info(driver: webdriver.remote.webdriver.WebDriver, url: str) -> 
         try:
             driver.get(url)
 
-            wait_page_ready(driver)
+            su.wait_page_ready(driver)
 
-            title = find_attribute(driver, "title", "innerText")
-            price = find_attribute(driver, "price", "innerText")
-            image_link = find_attribute(driver, "image", "src")
-            about = find_attribute(driver, "about", "innerText", default="").strip()
+            title = su.find_attribute(driver, "title", "innerText")
+            price = su.find_attribute(driver, "price", "innerText")
+            image_link = su.find_attribute(driver, "image", "src")
+            about = su.find_attribute(driver, "about", "innerText", default="").strip()
 
-            product_description = find_attribute(
+            product_description = su.find_attribute(
                 driver, "description", "innerText", default="IMAGE_DESCRIPTION_ONLY"
             ).strip()
 
             # FIXME: Check if there are images in the product description
-            if find_element(driver, "description"):
+            if su.find_element(driver, "description"):
                 description_image_urls = [
                     image.get_attribute("src")
-                    for image in find_element(driver, "description").find_elements(By.TAG_NAME, "img")  # type: ignore
+                    for image in su.find_element(driver, "description").find_elements(By.TAG_NAME, "img")  # type: ignore
                     if not image.get_attribute("src").endswith("gif")  # type: ignore
                 ]
             else:
                 description_image_urls = []
 
-            details = find_attribute(driver, "details", "innerText", default="")
+            details = su.find_attribute(driver, "details", "innerText", default="")
             product_details = {
                 key: value
                 for line in details.split("\n")
@@ -446,11 +232,11 @@ def get_product_info(driver: webdriver.remote.webdriver.WebDriver, url: str) -> 
                 for key, value in [parts]
             }
 
-            rating = find_attribute(driver, "rating", "innerText", default="").strip()
-            number_of_ratings = find_attribute(driver, "number_of_ratings", "innerText", default="")
+            rating = su.find_attribute(driver, "rating", "innerText", default="").strip()
+            number_of_ratings = su.find_attribute(driver, "number_of_ratings", "innerText", default="")
             number_of_ratings = "".join([c for c in number_of_ratings if c.isdigit()])
 
-            store = find_attribute(driver, "store", "innerText", default="")
+            store = su.find_attribute(driver, "store", "innerText", default="")
             # FIXME: Fix for other domains (e.g. amazon.de, amazon.se). Add to config.
             store = (
                 store.replace("Visit the ", "")
@@ -460,7 +246,7 @@ def get_product_info(driver: webdriver.remote.webdriver.WebDriver, url: str) -> 
                 .strip()
             )
 
-            store_url = find_attribute(driver, "store", "href")
+            store_url = su.find_attribute(driver, "store", "href")
 
             image_urls = get_image_urls(driver)
 
@@ -480,31 +266,29 @@ def get_product_info(driver: webdriver.remote.webdriver.WebDriver, url: str) -> 
                 "time": time.strftime("%Y-%m-%d %H:%M:%S"),
             }
         except TimeoutError as e:
-            logger.error(f"Timeout error: {e}")
+            logger.exception(f"Timeout error: {e}")
             time.sleep(30)
             continue
         except Exception as e:
-            logger.error(f"Error getting product information: {e}")
+            logger.exception(f"Error getting product information: {e}")
             return {}
 
     return {}
 
 
-def get_product_info_by_asin(
-    driver: webdriver.remote.webdriver.WebDriver | None = None, *, base_url: str, asin: str
-) -> dict:
+def get_product_info_by_asin(driver: WebDriver | None = None, *, base_url: str, asin: str) -> dict:
     """Get product information from an Amazon product page using the ASIN.
 
     Args:
         base_url (str): Base URL of the search engine.
         asin (str): Amazon Standard Identification Number (ASIN).
-        driver (webdriver.remote.webdriver.WebDriver | None, optional): A Selenium WebDriver instance. Defaults to None.
+        driver (WebDriver | None, optional): A Selenium WebDriver instance. Defaults to None.
 
     Returns:
         dict: Product information.
     """
     if driver is None:
-        driver = get_driver()
+        driver = su.get_driver()
     url = f"{base_url}/dp/{asin}"
     return get_product_info(driver, url)
 
@@ -526,35 +310,52 @@ def save_results(results: list[dict], directory: str, base_url: str, keyword: st
         writer.writerows(results)
 
 
-def save_webpage_as_png(driver: webdriver.remote.webdriver.WebDriver | None, url: str, filename: str) -> None:
+def save_webpage_as_png(driver: WebDriver | None, url: str, filename: str) -> None:
     """Save a webpage as a PNG file.
 
     Args:
-        driver (webdriver.remote.webdriver.WebDriver | None): A Selenium WebDriver instance. Defaults to None.
+        driver (WebDriver | None): A Selenium WebDriver instance. Defaults to None.
         url (str): URL of the webpage.
         filename (str): Output filename.
     """
-    if driver is None:
-        driver = get_driver()
-    driver.get(url)
+    try:
 
-    WebDriverWait(driver, 30).until(lambda driver: driver.execute_script("return document.readyState") == "complete")
+        if driver is None:
+            driver = su.get_driver()
+        driver.get(url)
 
-    reject_cookies(driver)
-    dismiss_popup(driver, "dismiss_delivery_options")
+        WebDriverWait(driver, 30).until(
+            lambda driver: driver.execute_script("return document.readyState") == "complete"
+        )
 
-    width = driver.execute_script(
-        "return Math.max( document.body.scrollWidth, document.body.offsetWidth, document.documentElement.clientWidth, document.documentElement.scrollWidth, document.documentElement.offsetWidth );"
-    )
+        su.reject_cookies(driver)
+        su.dismiss_popup(driver, "dismiss_delivery_options")
 
-    height = driver.execute_script(
-        "return Math.max( document.body.scrollHeight, document.body.offsetHeight, document.documentElement.clientHeight, document.documentElement.scrollHeight, document.documentElement.offsetHeight );"
-    )
+        width = driver.execute_script(
+            "return Math.max( document.body.scrollWidth, document.body.offsetWidth, document.documentElement.clientWidth, document.documentElement.scrollWidth, document.documentElement.offsetWidth );"
+        )
 
-    driver.set_window_size(width, height)
+        height = driver.execute_script(
+            "return Math.max( document.body.scrollHeight, document.body.offsetHeight, document.documentElement.clientHeight, document.documentElement.scrollHeight, document.documentElement.offsetHeight );"
+        )
 
-    Path(filename).parent.mkdir(parents=True, exist_ok=True)
-    driver.save_screenshot(filename)
+        driver.set_window_size(width, height)
+
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
+        driver.save_screenshot(filename)
+    except Exception as e:
+        logger.exception(f"Error saving webpage {url} as PNG: {e}")
+
+
+def save_full_page_screenshots(output_directory: str, results: list[dict]) -> None:
+    try:
+        driver: WebDriver = su.get_driver()
+        for result in results:
+            target_filename: str = f"{output_directory}/{result['sort_id']}/{result['sort_id']}_full_page.png"
+            save_webpage_as_png(driver, result["url"], target_filename)
+        driver.quit()
+    except Exception as e:
+        logger.exception(f"Error saving full page screenshots: {e}")
 
 
 def search_amazon(
@@ -578,61 +379,89 @@ def search_amazon(
     """
     logger.info(f"Searching for {keyword} on {base_url}")
 
-    driver = get_driver()
+    driver: WebDriver = su.get_driver()
+
+    products: list[dict] = []
     try:
         pages: list[str] = get_search_result_pages(driver, base_url, keyword, max_search_result_pages)
 
-        if output_directory:
-            for index, page in enumerate(pages, start=1):
-                save_webpage_as_png(driver, page, f"{output_directory}/search_page_{str(index).zfill(2)}.png")
+        store_search_result_images(driver, output_directory, pages)
 
-        search_results = []
-        for page in pages:
-            try:
-                search_results += get_products(driver, page, base_url)
-                if max_results and len(search_results) >= max_results:
-                    logger.info(f"Found {max_results} results. Stopping search.")
-                    break
-            except Exception as e:
-                logger.error(f"Error processing page {page}: {e}")
-                continue
+        candidates: list[dict] = get_products_found_on_pages(driver, base_url, max_results, pages)
 
-        if max_results:
-            search_results = search_results[:max_results]
+        products: list[dict] = get_product_informations(driver, base_url, keyword, candidates)
 
-        sort_id = 1
-        for result in search_results:
-            try:
-                product_info = get_product_info(driver, result["url"])
-
-                if not product_info:
-                    continue
-
-                result.update(product_info)
-                tld = urlparse(base_url).netloc.split('.')[-1]
-                result["tld"] = tld
-                result["keyword"] = keyword
-                result["sort_id"] = f"{str(sort_id).zfill(4)}"
-                result["image_names"] = [
-                    f"{result['sort_id']}{chr(97+index)}.{result['image_urls'][index].split('.')[-1]}"
-                    for index, _ in enumerate(result["image_urls"])
-                ]
-
-                sort_id += 1
-
-            except Exception as e:
-                logger.error(f"Error processing product {result['url']}: {e}")
-                continue
     except NoSuchElementException as e:
-        logger.error(f"Error searching for {keyword}: {e}")
-        search_results = []
+        logger.exception(f"Error searching for {keyword}: {e}")
+        products = []
     except Exception as e:
-        logger.error(f"Error searching for {keyword}: {e}")
-        search_results = []
+        logger.exception(f"Error searching for {keyword}: {e}")
+        products = []
     finally:
         driver.quit()
 
-    return search_results
+    return products
+
+
+def store_search_result_images(driver: WebDriver, output_directory: str, pages: list[str]) -> None:
+    if not output_directory:
+        return
+    for index, page in enumerate(pages, start=1):
+        save_webpage_as_png(driver, page, f"{output_directory}/search_page_{str(index).zfill(2)}.png")
+
+
+def get_product_informations(driver: WebDriver, base_url: str, keyword: str, candidates: list[dict]) -> list[dict]:
+
+    def get_image_names(urls: list[str], sort_id: str) -> list[str]:
+        return [f"{sort_id}{chr(97+index)}.{url.split('.')[-1]}" for index, url in enumerate(urls)]
+
+    sort_id = 1
+    products: list[dict] = []
+    for candidate in candidates:
+        try:
+            product_info: dict = get_product_info(driver, candidate["url"])
+
+            if not product_info:
+                continue
+
+            sort_id_str: str = str(sort_id).zfill(4)
+            candidate.update(
+                product_info
+                | {
+                    "tld": urlparse(base_url).netloc.split('.')[-1],
+                    "keyword": keyword,
+                    "sort_id": sort_id_str,
+                    "image_names": get_image_names(product_info.get("image_urls", []), sort_id_str),
+                    "sort_title": f"{sort_id_str}_{product_info.get('title_info', '???')}",
+                }
+            )
+
+            products.append(candidate)
+            sort_id += 1
+
+        except Exception as e:
+            logger.exception(f"Error processing product {candidate['url']}: {e}")
+            continue
+
+    return products
+
+
+def get_products_found_on_pages(driver: WebDriver, base_url: str, max_results: int, pages: list[str]) -> list[dict]:
+    candidates: list[dict[str, Any]] = []
+    for page in pages:
+        try:
+            candidates += get_products(driver, page, base_url)
+            if max_results and len(candidates) >= max_results:
+                logger.info(f"Found {max_results} results. Stopping search.")
+                break
+        except Exception as e:
+            logger.exception(f"skipped: error processing page {page}: {e}")
+            continue
+
+    if max_results:
+        candidates = candidates[:max_results]
+
+    return candidates
 
 
 def save_images_from_results(results: list[dict], directory: str, subdir_key: str) -> None:
@@ -658,19 +487,23 @@ def save_description_images(results: list[dict], directory: str, subdir_key: str
         subdir_key (str): Key to use as subdirectory.
     """
     for result in results:
-        subdirectory = result[subdir_key]
-        if description_image_urls := result.get("description_image_urls"):
-            description_image_names = [
-                f"{result['sort_id']}_product_image_{str(i+1).zfill(2)}" for i in range(len(description_image_urls))
-            ]
-            save_images(description_image_urls, description_image_names, f"{directory}/{subdirectory}")
+        try:
+            subdirectory: str = result[subdir_key]
+            if description_image_urls := result.get("description_image_urls"):
+                description_image_names: list[str] = [
+                    f"{result['sort_id']}_product_image_{str(i+1).zfill(2)}" for i in range(len(description_image_urls))
+                ]
+                save_images(description_image_urls, description_image_names, f"{directory}/{subdirectory}")
+        except Exception as e:
+            logger.exception(f"Error saving description images: {e}")
+            continue
 
 
 PossibleSentiments = Literal["1_star", "2_star", "3_star", "4_star", "5_star", "positive", "critical", "all"]
 
 
 def get_reviews(
-    driver: webdriver.remote.webdriver.WebDriver,
+    driver: WebDriver,
     base_url: str,
     asin: str,
     sentiment: PossibleSentiments,
@@ -678,7 +511,7 @@ def get_reviews(
     """Get reviews from an Amazon product page.
 
     Args:
-        driver (webdriver.remote.webdriver.WebDriver): A Selenium WebDriver instance.
+        driver (WebDriver): A Selenium WebDriver instance.
         base_url (str): Base URL of the search engine.
         asin (str): Amazon Standard Identification Number (ASIN).
         sentiment (PossibleSentiments): Sentiment of the reviews.
@@ -691,19 +524,17 @@ def get_reviews(
     """
     selectors: dict[str, Any] = ConfigValue("selectors").resolve()
 
-    url = f"{base_url}/product-reviews/{asin}"
+    url: str = f"{base_url}/product-reviews/{asin}"
     driver.get(url)
 
-    wait_page_ready(driver)
-
-    reject_cookies(driver)
-
-    dismiss_popup(driver, "dismiss_delivery_options")
+    su.wait_page_ready(driver)
+    su.reject_cookies(driver)
+    su.dismiss_popup(driver, "dismiss_delivery_options")
 
     reviews = []
 
     # TODO: Add function get_element_with_attribute_value
-    reviews_button: webdriver.remote.webelement.WebElement | None = None
+    reviews_button: WebElement | None = None
     try:
         for selector in selectors.get("reviews_stars_button", []):
             if driver.find_element(By.CSS_SELECTOR, selector).get_attribute("textContent") == "All stars":
@@ -717,7 +548,7 @@ def get_reviews(
     if reviews_button is not None:
         reviews_button.click()
 
-    sentiment_dropdown = find_element(driver, f"{sentiment}_reviews")
+    sentiment_dropdown = su.find_element(driver, f"{sentiment}_reviews")
     if sentiment_dropdown is None:
         logger.warning(f"Unable to find reviews dropdown for ASIN: {asin} and sentiment: {sentiment}")
         return None
@@ -730,12 +561,12 @@ def get_reviews(
     for element in elements:
         review = {
             "asin": asin,
-            "author": find_attribute(element, "review_author", "textContent"),
-            "rating": find_attribute(element, "review_rating", "innerHTML"),
-            "title": find_element(element, "review_title").text if find_element(element, "review_title") is not None else "",  # type: ignore
-            "location_and_date": find_attribute(element, "review_date", "textContent"),
-            "verified": find_attribute(element, "review_verified", "textContent"),
-            "text": find_attribute(element, "review_text", "innerText"),
+            "author": su.find_attribute(element, "review_author", "textContent"),
+            "rating": su.find_attribute(element, "review_rating", "innerHTML"),
+            "title": su.find_element(element, "review_title").text if su.find_element(element, "review_title") is not None else "",  # type: ignore
+            "location_and_date": su.find_attribute(element, "review_date", "textContent"),
+            "verified": su.find_attribute(element, "review_verified", "textContent"),
+            "text": su.find_attribute(element, "review_text", "innerText"),
         }
         reviews.append(review)
 
@@ -776,7 +607,7 @@ def export_reviews(
     if not all(key in results[0] for key in ["asin", "sort_id"]):
         raise ValueError("Results do not contain 'asin' and 'sort_id' keys")
 
-    driver = get_driver()
+    driver: WebDriver = su.get_driver()
     try:
         for result in results:
             asin = result["asin"]
@@ -784,7 +615,7 @@ def export_reviews(
             # FIXME: Use global base_url, use argument or use config. Use argument: default_base_url = "https://www.amazon.com"
             base_url = result.get("simplified_url", "https://www.amazon.com").split("/dp/")[0]
             reviews = get_reviews(driver, base_url, asin, sentiment)
-            filename = f"{output_directory}/{sort_id}/{sort_id}_{sentiment}_reviews.csv"
+            filename: str = f"{output_directory}/{sort_id}/{sort_id}_{sentiment}_reviews.csv"
             if not reviews:
                 logger.info(f"No {sentiment} reviews found for {sort_id}. ASIN: {asin}.")
                 if create_empty_files:
@@ -795,6 +626,6 @@ def export_reviews(
                 continue
             save_reviews(reviews, filename)
     except Exception as e:
-        logger.error(f"Error exporting reviews: {e}")
+        logger.exception(f"Error exporting reviews: {e}")
     finally:
         driver.quit()
