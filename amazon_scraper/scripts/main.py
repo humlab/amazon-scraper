@@ -20,8 +20,9 @@ def main(domain: str, keyword: str) -> None:
 
     for k in keywords:
         for d in domains:
-            logger.info(f"Scraping {k} on {d}")
+            logger.info(f"START Scraping {k} on {d}")
             scrape_workflow(options, k, d)
+            logger.info(f"END Scraping {k} on {d}")
 
     logger.success("Scraping completed")
 
