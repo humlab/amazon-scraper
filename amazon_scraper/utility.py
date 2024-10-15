@@ -5,6 +5,7 @@ import yaml
 from loguru import logger
 
 
+# TODO: Use the retry decorator from the utils module
 def retry(*, times: int, exceptions: Exception | tuple[Exception] = None, sleep: int = 0, default: Any = None) -> Any:
     """Retry a function a number of times if an exception is thrown
 
@@ -19,10 +20,15 @@ def retry(*, times: int, exceptions: Exception | tuple[Exception] = None, sleep:
 
     Raises:
         Exception: The exception thrown by the function. If the function fails after the number of retries, the exception is raised.
+
+    Example:
+        @retry(times=3, exceptions=(Exception,), sleep=1)
+        def my_function():
+            raise
     """
     exceptions = exceptions or (Exception,)
 
-    def decorator(func):
+    def decorator(func: Any) -> Any:
         def fx(*args, **kwargs):
             attempt: int = 0
             while attempt < times:
@@ -35,6 +41,7 @@ def retry(*, times: int, exceptions: Exception | tuple[Exception] = None, sleep:
                         logger.error(f'Failed to run {func.__name__} after {times} attempts')
                         if default is None:
                             raise
+                        return default
                     if sleep:
                         time.sleep(sleep)
             return default
