@@ -389,7 +389,7 @@ def search_amazon(
 
         candidates: list[dict] = get_products_found_on_pages(driver, base_url, max_results, pages)
 
-        products: list[dict] = get_product_informations(driver, base_url, keyword, candidates)
+        products = get_product_informations(driver, base_url, keyword, candidates)
 
     except NoSuchElementException as e:
         logger.exception(f"Error searching for {keyword}: {e}")
@@ -403,7 +403,7 @@ def search_amazon(
     return products
 
 
-def store_search_result_images(driver: WebDriver, output_directory: str, pages: list[str]) -> None:
+def store_search_result_images(driver: WebDriver, output_directory: str | None, pages: list[str]) -> None:
     if not output_directory:
         return
     for index, page in enumerate(pages, start=1):
@@ -446,7 +446,9 @@ def get_product_informations(driver: WebDriver, base_url: str, keyword: str, can
     return products
 
 
-def get_products_found_on_pages(driver: WebDriver, base_url: str, max_results: int, pages: list[str]) -> list[dict]:
+def get_products_found_on_pages(
+    driver: WebDriver, base_url: str, max_results: int | None, pages: list[str]
+) -> list[dict]:
     candidates: list[dict[str, Any]] = []
     for page in pages:
         try:
