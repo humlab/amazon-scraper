@@ -67,6 +67,8 @@ def scrape_workflow(options: dict[str, Any], keyword: str, domain: str, force: b
             logger.info(f"Exporting {sentiment} reviews")
             export_reviews(results, output_directory, sentiment=sentiment)
 
+        logger.success(f"Finished scraping {keyword} on {domain}")
+
     except Exception as e:
         logger.exception(f"ABORTED Error scraping {keyword} on {domain}: {e}")
 
