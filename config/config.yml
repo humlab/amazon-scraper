@@ -1,9 +1,9 @@
 payload:
   target_folder: ./output
   domains:
-    - "com"
+    # - "com"
     - "de"
-    - "co.uk"
+    # - "co.uk"
   keywords:
     - house blessing
     - mezuzah
