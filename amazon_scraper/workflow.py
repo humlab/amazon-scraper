@@ -30,8 +30,11 @@ def scrape_workflow(options: dict[str, Any], keyword: str, domain: str, force: b
 
     output_directory: str = f"{target_root}/{keyword}_{domain}_{time.strftime('%Y%m%d')}"
 
+    logger_ids: set[int] = set()
     for level in options.get("log_levels", []):
-        logger.add(f"{output_directory}/{level}.log", level=level.upper())
+        logger_ids.add(
+            logger.add(f"{output_directory}/{level}.log", level=level.upper())
+        )
 
     try:
         # Scrape
@@ -67,3 +70,7 @@ def scrape_workflow(options: dict[str, Any], keyword: str, domain: str, force: b
 
     except Exception as e:
         logger.exception(f"ABORTED Error scraping {keyword} on {domain}: {e}")
+
+    finally:
+        for logger_id in logger_ids:
+            logger.remove(logger_id)
