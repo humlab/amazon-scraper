@@ -74,12 +74,21 @@ test-retest:
 
 TIMESTAMP_IN_ISO_FORMAT=$(shell date -u +"%Y%m%dT%H%M%SZ")
 
+profile-with-pyinstrument: export PYTHONPATH=.
 profile-with-pyinstrument:
 	@echo "Profiling scrape workflow..."
 	@mkdir -p tests/output
-	@PYTHONPATH=. poetry run pyinstrument --color --show-all \
+	@poetry run pyinstrument --color --show-all \
 		-o tests/output/$(TIMESTAMP_IN_ISO_FORMAT)_profile_workflow.html \
 			tests/profile_workflow.py
+.PHONY: profile-with-pyinstrument
+
+profile-with-cprofile: export PYTHONPATH=.
+profile-with-cprofile:
+	@echo "Profiling scrape workflow..."
+	@mkdir -p tests/output
+	@poetry run python -m cProfile tests/profile_workflow.py &> tests/output/$(TIMESTAMP_IN_ISO_FORMAT)_profile_workflow.txt
+.PHONY: profile-with-cprofile
 
 help:
 	@echo "black:				Run black formatter"
@@ -99,4 +108,5 @@ help:
 	@echo "test-web:			Run only tests that require internet connection"
 	@echo "test-retest:			Run only the tests that failed in the last run"
 	@echo "profile-with-pyinstrument:	Profile scrape workflow with pyinstrument"
+	@echo "profile-with-cprofile:		Profile scrape workflow with cProfile"
 .PHONY: help
