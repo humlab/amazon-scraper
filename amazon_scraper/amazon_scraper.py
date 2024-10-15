@@ -82,7 +82,7 @@ def get_search_result_pages(
     return pages
 
 
-def get_products(driver: WebDriver, page: str, base_url: str) -> list[dict]:
+def get_products(driver: WebDriver, page: str, base_url: str, filename: str) -> list[dict]:
     """Get products from a search result page.
 
     Args:
@@ -97,6 +97,8 @@ def get_products(driver: WebDriver, page: str, base_url: str) -> list[dict]:
 
     driver.get(page)
     su.wait_page_ready(driver)
+
+    save_webpage_as_png(driver, page, filename)
 
     elements: list[WebElement] = driver.find_elements(By.CSS_SELECTOR, selectors["products"])
 
@@ -385,9 +387,7 @@ def search_amazon(
     try:
         pages: list[str] = get_search_result_pages(driver, base_url, keyword, max_search_result_pages)
 
-        store_search_result_images(driver, output_directory, pages)
-
-        candidates: list[dict] = get_products_found_on_pages(driver, base_url, max_results, pages)
+        candidates: list[dict] = get_products_found_on_pages(driver, base_url, max_results, pages, output_directory)
 
         products = get_product_informations(driver, base_url, keyword, candidates)
 
@@ -447,12 +447,13 @@ def get_product_informations(driver: WebDriver, base_url: str, keyword: str, can
 
 
 def get_products_found_on_pages(
-    driver: WebDriver, base_url: str, max_results: int | None, pages: list[str]
+    driver: WebDriver, base_url: str, max_results: int | None, pages: list[str], output_directory: str | None = None
 ) -> list[dict]:
     candidates: list[dict[str, Any]] = []
-    for page in pages:
+    for i, page in enumerate(pages, start=1):
         try:
-            candidates += get_products(driver, page, base_url)
+            filename = f"{output_directory}/search_page_{str(i).zfill(2)}.png"
+            candidates += get_products(driver, page, base_url, filename)
             if max_results and len(candidates) >= max_results:
                 logger.info(f"Found {max_results} results. Stopping search.")
                 break
