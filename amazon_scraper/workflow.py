@@ -15,11 +15,12 @@ from amazon_scraper.amazon_scraper import (
 )
 from amazon_scraper.configuration.inject import ConfigValue
 
+
 def scrape_workflow(options: dict[str, Any], keyword: str, domain: str, force: bool = False) -> None:
 
     base_url: str = f"https://www.amazon.{domain}"
     target_root: str = ConfigValue("payload.target_folder", mandatory=True).resolve()
-    
+
     for folder in glob.glob(f"{target_root}/{keyword}_{domain}_*"):
         if force:
             logger.info(f"Force scraping {keyword} on {domain}: removing {folder}")
@@ -32,9 +33,7 @@ def scrape_workflow(options: dict[str, Any], keyword: str, domain: str, force: b
 
     logger_ids: set[int] = set()
     for level in options.get("log_levels", []):
-        logger_ids.add(
-            logger.add(f"{output_directory}/{level}.log", level=level.upper())
-        )
+        logger_ids.add(logger.add(f"{output_directory}/{level}.log", level=level.upper()))
 
     try:
         # Scrape
@@ -49,7 +48,7 @@ def scrape_workflow(options: dict[str, Any], keyword: str, domain: str, force: b
         if len(results) == 0:
             logger.warning(f"No results found for {keyword} on {domain}")
             return
-        
+
         save_results(results, output_directory, base_url, keyword)
 
         if options.get("save_images"):
