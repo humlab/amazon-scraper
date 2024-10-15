@@ -6,6 +6,20 @@ from loguru import logger
 
 
 def retry(*, times: int, exceptions: Exception | tuple[Exception] = None, sleep: int = 0, default: Any = None) -> Any:
+    """Retry a function a number of times if an exception is thrown
+
+    Args:
+        times (int): The number of times to retry the function.
+        exceptions (Exception | tuple[Exception], optional): The exception or exceptions to catch. Defaults to None.
+        sleep (int, optional): The time to sleep between retries. Defaults to 0.
+        default (Any, optional): The default value to return if the function fails. Defaults to None.
+
+    Returns:
+        Any: The return value of the function.
+
+    Raises:
+        Exception: The exception thrown by the function. If the function fails after the number of retries, the exception is raised.
+    """
     exceptions = exceptions or (Exception,)
 
     def decorator(func):
