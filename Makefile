@@ -90,6 +90,18 @@ profile-with-cprofile:
 	@poetry run python -m cProfile tests/profile_workflow.py &> tests/output/$(TIMESTAMP_IN_ISO_FORMAT)_profile_workflow.txt
 .PHONY: profile-with-cprofile
 
+md5sums-windows:
+	@cd output && find -type f ! -name "output.md5" -exec md5sum -b {} + > output.md5
+	@sed 's/\//\\/g; s/\.\\//g' output/output.md5 > output/output.md5.tmp
+	@mv output/output.md5.tmp output/output.md5
+.PHONY: md5sums
+
+sha256sums-windows:
+	@cd output && find -type f ! -name "output.sha256" -exec sha256sum -b {} + > output.sha256
+	@sed 's/\//\\/g; s/\.\\//g' output/output.sha256 > output/output.sha256.tmp
+	@mv output/output.sha256.tmp output/output.sha256
+.PHONY: sha256sums
+
 help:
 	@echo "black:				Run black formatter"
 	@echo "isort:				Run isort formatter"
@@ -109,4 +121,6 @@ help:
 	@echo "test-retest:			Run only the tests that failed in the last run"
 	@echo "profile-with-pyinstrument:	Profile scrape workflow with pyinstrument"
 	@echo "profile-with-cprofile:		Profile scrape workflow with cProfile"
+	@echo "md5sums-windows:		Generate md5sums of output files for Windows"
+	@echo "sha256sums-windows:		Generate sha256sums of output files for Windows"
 .PHONY: help
