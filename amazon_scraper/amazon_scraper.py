@@ -135,7 +135,7 @@ def get_image_urls(driver: WebDriver, url: str | None = None) -> list[str | None
     Returns:
         list[str | None]: A list of image links (URLs).
     """
-    image_urls: list[str] = []
+    image_urls: list[str] = []  # FIXME: Use Sequence[str] instead of list[str]
     try:
         if url:
             driver.get(url)
