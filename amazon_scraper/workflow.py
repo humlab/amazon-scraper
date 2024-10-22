@@ -69,7 +69,7 @@ def scrape_workflow(options: dict[str, Any], keyword: str, domain: str, force: b
 
         logger.success(f"Finished scraping {keyword} on {domain}")
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         logger.exception(f"ABORTED Error scraping {keyword} on {domain}: {e}")
 
     finally:
