@@ -1,3 +1,4 @@
+# pylint: disable=broad-exception-caught
 import csv
 import time
 from pathlib import Path
