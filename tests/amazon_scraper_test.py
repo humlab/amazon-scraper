@@ -42,11 +42,16 @@ class TestGetProductInfo:
         assert len(product_info) == 13
 
 
+@pytest.mark.web
 class TestGetImageUrls:
-    @pytest.mark.web
+    @pytest.mark.slow
     def test_get_image_urls(self, driver):
         image_urls = get_image_urls(driver, "https://www.amazon.com/dp/B0B9YVG4LR")
 
         assert len(image_urls) == 7
-        assert all(image_url.startswith("https://m.media-amazon.com/images/I/") for image_url in image_urls)
-        assert all(image_url.endswith(".jpg") for image_url in image_urls)
+        assert all(
+            image_url.startswith("https://m.media-amazon.com/images/I/")
+            for image_url in image_urls
+            if isinstance(image_url, str)
+        )
+        assert all(image_url.endswith(".jpg") for image_url in image_urls if isinstance(image_url, str))

@@ -2,7 +2,7 @@
 import csv
 import time
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Sequence
 from urllib.parse import urlparse
 
 import requests
@@ -125,7 +125,7 @@ def get_products(driver: WebDriver, page: str, base_url: str, filename: str) -> 
     return products
 
 
-def get_image_urls(driver: WebDriver, url: str | None = None) -> list[str | None]:
+def get_image_urls(driver: WebDriver, url: str | None = None) -> Sequence[str | None]:
     """Get image links from an Amazon product page.
 
     Args:
@@ -133,9 +133,9 @@ def get_image_urls(driver: WebDriver, url: str | None = None) -> list[str | None
         url (str): URL of the Amazon product page.
 
     Returns:
-        list[str | None]: A list of image links (URLs).
+        Sequence[str | None]: A sequence of image links (URLs).
     """
-    image_urls: list[str] = []  # FIXME: Use Sequence[str] instead of list[str]
+    image_urls: list[str] = []
     try:
         if url:
             driver.get(url)
@@ -147,7 +147,6 @@ def get_image_urls(driver: WebDriver, url: str | None = None) -> list[str | None
         if "www.amazon" not in driver.current_url:
             raise ValueError(f"Not an Amazon product page: {driver.current_url}")
 
-        # TODO: Add selector for image links to selectors.yaml. Add su.find_elements function.
         elements = driver.find_elements(By.CSS_SELECTOR, "#altImages > ul > li")
         elements = [element for element in elements if element.size["height"] != 0]
 
@@ -155,13 +154,12 @@ def get_image_urls(driver: WebDriver, url: str | None = None) -> list[str | None
 
         for element in elements:
             driver.execute_script("arguments[0].scrollIntoView();", element)
-            actions.move_to_element(element).perform()  # .click(element)
+            actions.move_to_element(element).perform()
             time.sleep(1)
 
-        # TODO: Add selector for image links to selectors.yaml. Add su.find_elements function.
         for image in driver.find_element(By.CSS_SELECTOR, "#main-image-container").find_elements(By.TAG_NAME, "img"):
             if image.get_attribute("data-old-hires"):
-                image_urls.append(image.get_attribute("data-old-hires"))
+                image_urls.append(str(image.get_attribute("data-old-hires")))
             else:
                 src: str | None = image.get_attribute("src")
                 if src and not src.endswith("gif"):
