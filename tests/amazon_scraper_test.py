@@ -3,7 +3,7 @@ import logging
 import pytest
 from selenium import webdriver
 
-from amazon_scraper.amazon_scraper import get_product_info, get_search_result_pages
+from amazon_scraper.amazon_scraper import get_image_urls, get_product_info, get_search_result_pages
 
 
 @pytest.fixture
@@ -40,3 +40,13 @@ class TestGetProductInfo:
         product_info = get_product_info(driver, product_url)
 
         assert len(product_info) == 13
+
+
+class TestGetImageUrls:
+    @pytest.mark.web
+    def test_get_image_urls(self, driver):
+        image_urls = get_image_urls(driver, "https://www.amazon.com/dp/B0B9YVG4LR")
+
+        assert len(image_urls) == 7
+        assert all(image_url.startswith("https://m.media-amazon.com/images/I/") for image_url in image_urls)
+        assert all(image_url.endswith(".jpg") for image_url in image_urls)
