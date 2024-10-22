@@ -5,36 +5,30 @@ import yaml
 from loguru import logger
 
 
-# TODO: Use the retry decorator from the utils module
-def retry(*, times: int, exceptions: Exception | tuple[Exception] = None, sleep: int = 0, default: Any = None) -> Any:
-    """Retry a function a number of times if an exception is thrown
+def retry(
+    times: int, exceptions: type[Exception] | tuple[type[Exception]] = Exception, sleep: int = 0, default: Any = None
+) -> Any:
+    """
+    Retry decorator to retry a function call if it raises an exception.
 
     Args:
-        times (int): The number of times to retry the function.
-        exceptions (Exception | tuple[Exception], optional): The exception or exceptions to catch. Defaults to None.
-        sleep (int, optional): The time to sleep between retries. Defaults to 0.
-        default (Any, optional): The default value to return if the function fails. Defaults to None.
+        times (int): Number of times to retry.
+        exceptions (Exception | tuple[Exception], optional): Exception(s) to catch. Defaults to None.
+        sleep (int, optional): Time to sleep between retries. Defaults to 0.
+        default (Any, optional): Default value to return if all retries fail. Defaults to None.
 
     Returns:
-        Any: The return value of the function.
-
-    Raises:
-        Exception: The exception thrown by the function. If the function fails after the number of retries, the exception is raised.
-
-    Example:
-        @retry(times=3, exceptions=(Exception,), sleep=1)
-        def my_function():
-            raise
+        Any: The result of the function call or the default value if it fails.
     """
     exceptions = exceptions or (Exception,)
 
     def decorator(func: Any) -> Any:
-        def fx(*args, **kwargs):
+        def fx(*args: Any, **kwargs: Any) -> Any:
             attempt: int = 0
             while attempt < times:
                 try:
                     return func(*args, **kwargs)
-                except exceptions:  # pylint: disable=catching-non-exception # type: ignore
+                except exceptions:  # pylint: disable=catching-non-exception, broad-exception-caught # type: ignore
                     logger.warning(f'Exception thrown running {func.__name__}, attempt {attempt} of {times}')
                     attempt += 1
                     if attempt == times:
