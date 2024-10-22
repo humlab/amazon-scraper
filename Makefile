@@ -90,6 +90,13 @@ profile-with-cprofile:
 	@poetry run python -m cProfile tests/profile_workflow.py &> tests/output/$(TIMESTAMP_IN_ISO_FORMAT)_profile_workflow.txt
 .PHONY: profile-with-cprofile
 
+profile-with-snakeviz: export PYTHONPATH=.
+profile-with-snakeviz:
+	@echo "Profiling scrape workflow..."
+	@mkdir -p tests/output
+	@poetry run python -m cProfile -o tests/output/$(TIMESTAMP_IN_ISO_FORMAT)_profile_workflow.prof tests/profile_workflow.py
+	@poetry run snakeviz tests/output/$(TIMESTAMP_IN_ISO_FORMAT)_profile_workflow.prof
+
 md5sums-windows:
 	@cd output && find -type f ! -name "output.md5" -exec md5sum -b {} + > output.md5
 	@sed 's/\//\\/g; s/\.\\//g' output/output.md5 > output/output.md5.tmp
