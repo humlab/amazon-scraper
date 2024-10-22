@@ -3,7 +3,7 @@ from typing import Any
 import click
 from loguru import logger
 
-from amazon_scraper.configuration import ConfigStore, ConfigValue
+from amazon_scraper.configuration import ConfigStore, ConfigValue  # type: ignore[attr-defined]
 from amazon_scraper.workflow import scrape_workflow  # type: ignore
 
 ConfigStore.configure_context(source='config/config.yml')
