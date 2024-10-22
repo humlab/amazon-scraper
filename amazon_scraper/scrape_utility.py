@@ -10,7 +10,6 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.wait import WebDriverWait
 
 from amazon_scraper.configuration import ConfigValue  # type: ignore
-from amazon_scraper.utility import retry  # type: ignore
 
 
 def get_driver() -> WebDriver:

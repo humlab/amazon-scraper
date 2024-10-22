@@ -16,7 +16,6 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from amazon_scraper import scrape_utility as su
 from amazon_scraper.configuration import ConfigValue  # type: ignore
-from amazon_scraper.utility import retry  # type: ignore
 
 
 def get_search_result_pages(
