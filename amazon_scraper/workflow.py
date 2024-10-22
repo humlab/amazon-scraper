@@ -13,7 +13,7 @@ from amazon_scraper.amazon_scraper import (
     save_results,
     search_amazon,
 )
-from amazon_scraper.configuration.inject import ConfigValue
+from amazon_scraper.configuration import ConfigValue
 
 
 def scrape_workflow(options: dict[str, Any], keyword: str, domain: str, force: bool = False) -> None:

@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from amazon_scraper.configuration.inject import ConfigStore, ConfigValue
+from amazon_scraper.configuration import ConfigStore, ConfigValue
 from amazon_scraper.scripts.main import scrape_workflow
 
 
