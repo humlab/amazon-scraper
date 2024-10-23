@@ -2,6 +2,7 @@ import logging
 
 import pytest
 from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
 
 from amazon_scraper.amazon_scraper import get_image_urls, get_product_info, get_search_result_pages
 
@@ -20,7 +21,7 @@ class TestGetSearchResultPages:
     @pytest.mark.slow
     def test_get_search_result_pages_with_only_one_result_page(self, driver, caplog):
         base_url = "https://www.amazon.com"
-        keyword = "nonexistentproduct"
+        keyword = "nonexistentproduct12345"
         max_search_result_pages = 1
 
         with caplog.at_level(logging.INFO):
@@ -30,6 +31,34 @@ class TestGetSearchResultPages:
         assert search_result_pages[0].startswith(f"{base_url}/s?k={keyword}")
         log_messages = [record.message for record in caplog.records]
         assert "Found only one page." in log_messages
+
+    @pytest.mark.slow
+    def test_get_search_result_pages_with_multiple_pages(self, driver, caplog):
+        base_url = "https://www.amazon.com"
+        keyword = "laptop"
+        max_search_result_pages = 3
+
+        with caplog.at_level(logging.INFO):
+            search_result_pages = get_search_result_pages(driver, base_url, keyword, max_search_result_pages)
+
+        assert len(search_result_pages) == max_search_result_pages
+        assert all(page.startswith(f"{base_url}/s?k={keyword}") for page in search_result_pages)
+        log_messages = [record.message for record in caplog.records]
+        assert (
+            f"Max search result pages set to {max_search_result_pages}. Returning {max_search_result_pages} pages"
+            in log_messages
+        )
+
+    @pytest.mark.slow
+    def test_get_search_result_pages_no_search_box(self, driver, mocker):
+        base_url = "https://www.amazon.com"
+        keyword = "laptop"
+        max_search_result_pages = 1
+
+        mocker.patch('amazon_scraper.scrape_utility.find_element', return_value=None)
+
+        with pytest.raises(NoSuchElementException, match="Search box not found"):
+            get_search_result_pages(driver, base_url, keyword, max_search_result_pages)
 
 
 @pytest.mark.web
