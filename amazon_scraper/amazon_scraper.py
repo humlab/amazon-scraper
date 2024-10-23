@@ -81,9 +81,10 @@ def get_products(driver: WebDriver, page: str, base_url: str, filename: str) -> 
         driver (WebDriver): A Selenium WebDriver instance.
         page (str): URL of the search result page.
         base_url (str): Base URL of the search engine.
+        filename (str): Output filename.
 
     Returns:
-        list[dict]: List of products.
+        list[dict]: List of products found on the page. Each product is a dictionary with keys 'title', 'price', 'url', 'asin', 'simplified_url', and 'is_sponsored'.
     """
     selectors: dict[str, Any] = ConfigValue("selectors").resolve()
 
@@ -309,6 +310,9 @@ def save_webpage_as_png(driver: WebDriver | None, url: str, filename: str) -> No
         driver (WebDriver | None): A Selenium WebDriver instance. Defaults to None.
         url (str): URL of the webpage.
         filename (str): Output filename.
+
+    Raises:
+        Exception: If an error occurs while saving the webpage as a PNG file.
     """
     try:
 
