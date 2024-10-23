@@ -115,6 +115,25 @@ class TestGetProducts:
         assert screenshot_path.is_file()
         assert screenshot_path.stat().st_size > 0
 
+    @pytest.mark.slow
+    def test_get_products_with_no_such_element_exception(self, driver, mocker, caplog, tmp_path):
+        base_url = "https://www.amazon.com"
+        page_url = "https://www.amazon.com/s?k=laptop"
+        filename = "test_page.png"
+        screenshot_path = tmp_path / filename
+
+        mocker.patch('amazon_scraper.scrape_utility.find_attribute', side_effect=NoSuchElementException)
+
+        with caplog.at_level(logging.INFO):
+            products = get_products(driver, page_url, base_url, filename=str(screenshot_path))
+
+        assert len(products) == 0
+        assert screenshot_path.exists()
+        assert screenshot_path.is_file()
+        assert screenshot_path.stat().st_size > 0
+        assert caplog.records[0].message.startswith("Error processing product: ")
+        assert caplog.records[-1].message.startswith("Processed 0 products on page")
+
 
 @pytest.mark.web
 class TestGetProductInfo:
