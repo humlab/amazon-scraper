@@ -1,5 +1,5 @@
 import time
-from typing import Any
+from typing import Any, Callable
 
 import yaml
 from loguru import logger
@@ -7,32 +7,47 @@ from loguru import logger
 
 def retry(
     times: int, exceptions: type[Exception] | tuple[type[Exception]] = Exception, sleep: int = 0, default: Any = None
-) -> Any:
+) -> Callable:
     """
     Retry decorator to retry a function call if it raises an exception.
 
     Args:
         times (int): Number of times to retry.
-        exceptions (Exception | tuple[Exception], optional): Exception(s) to catch. Defaults to None.
+        exceptions (Exception | tuple[Exception], optional): Exceptions to catch. Defaults to (Exception,).
         sleep (int, optional): Time to sleep between retries. Defaults to 0.
         default (Any, optional): Default value to return if all retries fail. Defaults to None.
 
     Returns:
-        Any: The result of the function call or the default value if it fails.
-    """
-    exceptions = exceptions or (Exception,)
+        Callable: The decorated function.
 
-    def decorator(func: Any) -> Any:
+    Example:
+        >>> @retry(times=3)
+        ... def my_function():
+        ...     raise Exception
+        ...
+        >>> my_function()
+    """
+    if exceptions is None:
+        exceptions = (Exception,)
+    elif not isinstance(exceptions, tuple):
+        exceptions = (exceptions,)
+
+    def decorator(func: Callable) -> Callable:
         def fx(*args: Any, **kwargs: Any) -> Any:
             attempt: int = 0
             while attempt < times:
                 try:
                     return func(*args, **kwargs)
-                except exceptions:  # pylint: disable=catching-non-exception, broad-exception-caught # type: ignore
-                    logger.warning(f'Exception thrown running {func.__name__}, attempt {attempt} of {times}')
+                except exceptions:  # pylint: disable=broad-exception-caught, catching-non-exception
+                    if hasattr(func, '__name__'):
+                        func_name = func.__name__
+                    else:
+                        func_name = type(func).__name__
+
+                    logger.warning(f'Exception thrown running {func_name}, attempt {attempt} of {times}')
                     attempt += 1
                     if attempt == times:
-                        logger.error(f'Failed to run {func.__name__} after {times} attempts')
+                        logger.error(f'Failed to run {func_name} after {times} attempts')
                         if default is None:
                             raise
                         return default
