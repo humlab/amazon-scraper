@@ -11,6 +11,8 @@ loguru = "^0.7.2"
 pyyaml = "^6.0.2"
 requests = "^2.32.3"
 selenium = "^4.23.1"
+python-dotenv = "^1.0.1"
+click = "^8.1.7"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -24,6 +26,8 @@ pytest-mock = "^3.14.0"
 types-pyyaml = "^6.0.12.20240808"
 types-requests = "^2.32.0.20240712"
 types-setuptools = "^75.1.0.20240917"
+pyinstrument = "^5.0.0"
+snakeviz = "^2.2.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -131,5 +135,6 @@ testpaths = [
 python_files = "*_test.py"
 python_functions = "test_*"
 markers = [
-    "web: marks tests as using webdriver (deselect with '-m \"not web\"')"
+    "web: marks tests as using webdriver (deselect with '-m \"not web\"')",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')"
 ]

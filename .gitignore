@@ -163,7 +163,7 @@ cython_debug/
 
 # Settings
 !.vscode/
-.vscode/*
+.vscode/settings.json
 
 # Backup files
 *.bak
