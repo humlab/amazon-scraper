@@ -4,7 +4,7 @@ import pytest
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 
-from amazon_scraper.amazon_scraper import get_image_urls, get_product_info, get_search_result_pages
+from amazon_scraper.amazon_scraper import get_image_urls, get_product_info, get_products, get_search_result_pages
 
 
 @pytest.fixture
@@ -59,6 +59,61 @@ class TestGetSearchResultPages:
 
         with pytest.raises(NoSuchElementException, match="Search box not found"):
             get_search_result_pages(driver, base_url, keyword, max_search_result_pages)
+
+    @pytest.mark.slow
+    def test_get_search_result_pages_with_exception(self, driver, mocker, caplog):
+        base_url = "https://www.amazon.com"
+        keyword = "laptop"
+        max_search_result_pages = 1
+
+        mocker.patch('amazon_scraper.scrape_utility.find_attribute', side_effect=Exception)
+
+        with caplog.at_level(logging.INFO):
+            search_result_pages = get_search_result_pages(driver, base_url, keyword, max_search_result_pages)
+
+        assert len(search_result_pages) == 1
+        assert search_result_pages[0].startswith(f"{base_url}/s?k={keyword}")
+        assert caplog.records[0].message.startswith("Error getting search result pages: ")
+
+
+@pytest.mark.web
+class TestGetProducts:
+    @pytest.mark.slow
+    def test_get_products_with_valid_page(self, driver, tmp_path):
+        base_url = "https://www.amazon.com"
+        page_url = "https://www.amazon.com/s?k=laptop"
+        filename = "test_page.png"
+        screenshot_path = tmp_path / filename
+
+        products = get_products(driver, page_url, base_url, filename=str(screenshot_path))
+
+        assert len(products) > 0
+        assert all("title" in product for product in products)
+        assert all("price" in product for product in products)
+        assert all("url" in product for product in products)
+        assert all("asin" in product for product in products)
+        assert all("simplified_url" in product for product in products)
+        assert all("is_sponsored" in product for product in products)
+
+        assert screenshot_path.exists()
+        assert screenshot_path.is_file()
+        assert screenshot_path.stat().st_size > 0
+
+    @pytest.mark.slow
+    def test_get_products_with_no_products(self, driver, mocker, tmp_path):
+        base_url = "https://www.amazon.com"
+        page_url = "https://www.amazon.com/s?k=nonexistentproduct1234567890"
+        filename = "test_page.png"
+        screenshot_path = tmp_path / filename
+
+        mocker.patch('selenium.webdriver.remote.webdriver.WebDriver.find_elements', return_value=[])
+
+        products = get_products(driver, page_url, base_url, filename=str(screenshot_path))
+
+        assert len(products) == 0
+        assert screenshot_path.exists()
+        assert screenshot_path.is_file()
+        assert screenshot_path.stat().st_size > 0
 
 
 @pytest.mark.web
