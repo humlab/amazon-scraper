@@ -51,16 +51,8 @@ def get_search_result_pages(
 
     try:
         su.wait_element(driver, "number_of_pages")
-        attrib = su.find_attribute(driver, "number_of_pages", "textContent", default='0')
-
-        number_of_pages = int(attrib)
-        if number_of_pages == 0:
-            logger.warning("Number of pages is 0")  # FIXME: Unnecessary warning? Raise exception?
-
         number_of_pages = int(su.find_attribute(driver, "number_of_pages", "textContent", default='1'))
-
         logger.info(f"Found {number_of_pages} pages")
-
         number_of_pages = min(number_of_pages, max_search_result_pages) if max_search_result_pages else number_of_pages
         logger.info(f"Max search result pages set to {max_search_result_pages}. Returning {number_of_pages} pages")
 
