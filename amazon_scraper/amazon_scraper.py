@@ -140,6 +140,8 @@ def get_image_urls(driver: WebDriver, url: str | None = None) -> Sequence[str | 
         if "www.amazon" not in driver.current_url:
             raise ValueError(f"Not an Amazon product page: {driver.current_url}")
 
+        su.wait_page_ready(driver)
+
         elements = driver.find_elements(By.CSS_SELECTOR, "#altImages > ul > li")
         elements = [element for element in elements if element.size["height"] != 0]
 
@@ -150,13 +152,16 @@ def get_image_urls(driver: WebDriver, url: str | None = None) -> Sequence[str | 
             actions.move_to_element(element).perform()
             time.sleep(1)
 
-        for image in driver.find_element(By.CSS_SELECTOR, "#main-image-container").find_elements(By.TAG_NAME, "img"):
+        images = driver.find_element(By.CSS_SELECTOR, "#main-image-container").find_elements(By.TAG_NAME, "img")
+        for image in images:
             if image.get_attribute("data-old-hires"):
                 image_urls.append(str(image.get_attribute("data-old-hires")))
             else:
                 src: str | None = image.get_attribute("src")
                 if src and not src.endswith("gif"):
                     image_urls.append(src)
+    except TimeoutError as e:
+        logger.exception(f"Timeout error: {e}")
     except Exception as e:
         logger.exception(f"Error getting image URLs: {e}")
 
