@@ -25,7 +25,7 @@ selectors:
       - "#twotabsearchtextbox"
       - "#nav-bb-search"
 
-  number_of_pages: "span.s-pagination-strip > :nth-last-child(2)"
+  number_of_pages: "span.s-pagination-strip > ul > :nth-last-child(2)"
 
   products: ".s-result-item[data-asin^='B0']"
   product_title: "h2"
