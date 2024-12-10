@@ -4,7 +4,7 @@ import click
 from loguru import logger
 
 from amazon_scraper.configuration import ConfigStore, ConfigValue  # type: ignore[attr-defined]
-from amazon_scraper.workflow import scrape_workflow  # type: ignore
+from amazon_scraper.workflow import scrape_workflow
 
 ConfigStore.configure_context(source='config/config.yml')
 
