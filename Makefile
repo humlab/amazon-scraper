@@ -32,8 +32,16 @@ mypy:
 	@poetry run mypy $(MYPY_ARGS) $(SOURCE_FOLDERS) || true
 .PHONY: mypy
 
+mypy-strict: export PYTHONPATH=.
+mypy-strict:
+	@poetry run mypy $(MYPY_ARGS) --strict $(SOURCE_FOLDERS) || true
+.PHONY: mypy-strict
+
 typing: lint mypy
 .PHONY: typing
+
+typing-strict: lint mypy-strict
+.PHONY: typing-strict
 
 clean:
 	@rm -rf .coverage coverage.xml htmlcov
