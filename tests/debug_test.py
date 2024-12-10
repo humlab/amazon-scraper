@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 
 from amazon_scraper.configuration import ConfigStore, ConfigValue  # type: ignore[attr-defined]
-from amazon_scraper.scripts.main import scrape_workflow
+from amazon_scraper.workflow import scrape_workflow
 
 
 @pytest.mark.skip(reason="This is a debug test")
