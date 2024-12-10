@@ -74,7 +74,7 @@ def get_search_result_pages(
     return pages
 
 
-def get_products(driver: WebDriver, page: str, base_url: str, filename: str) -> list[dict]:
+def get_products(driver: WebDriver, page: str, base_url: str, filename: str) -> list[dict[str, Any]]:
     """Get products from a search result page.
 
     Args:
@@ -84,7 +84,7 @@ def get_products(driver: WebDriver, page: str, base_url: str, filename: str) -> 
         filename (str): Output filename.
 
     Returns:
-        list[dict]: List of products found on the page. Each product is a dictionary with keys 'title', 'price', 'url', 'asin', 'simplified_url', and 'is_sponsored'.
+        list[dict[str, Any]]: List of products found on the page. Each product is a dictionary with keys 'title', 'price', 'url', 'asin', 'simplified_url', and 'is_sponsored'.
     """
     selectors: dict[str, Any] = ConfigValue("selectors").resolve()
 
@@ -95,7 +95,7 @@ def get_products(driver: WebDriver, page: str, base_url: str, filename: str) -> 
 
     elements: list[WebElement] = driver.find_elements(By.CSS_SELECTOR, selectors["products"])
 
-    products: list[dict] = []
+    products: list[dict[str, Any]] = []
 
     for element in elements:
         try:
@@ -148,7 +148,7 @@ def get_image_urls(driver: WebDriver, url: str | None = None) -> Sequence[str | 
         actions = ActionChains(driver)
 
         for element in elements:
-            driver.execute_script("arguments[0].scrollIntoView();", element)
+            driver.execute_script("arguments[0].scrollIntoView();", element)  # type: ignore[no-untyped-call]
             actions.move_to_element(element).perform()
             time.sleep(1)
 
@@ -187,7 +187,7 @@ def save_images(urls: list[str], filenames: list[str], directory: str) -> None:
             logger.exception(f"Error saving image {image_link} to {directory}/{filename}: {e}")
 
 
-def get_product_info(driver: WebDriver, url: str) -> dict:
+def get_product_info(driver: WebDriver, url: str) -> dict[str, Any]:
     """Get product information from an Amazon product page.
 
     Args:
@@ -195,7 +195,7 @@ def get_product_info(driver: WebDriver, url: str) -> dict:
         url (str): URL of the Amazon product page.
 
     Returns:
-        dict: Product information.
+        dict[str, Any]: Product information.
     """
     for _ in range(3):
         try:
@@ -274,7 +274,7 @@ def get_product_info(driver: WebDriver, url: str) -> dict:
     return {}
 
 
-def get_product_info_by_asin(driver: WebDriver | None = None, *, base_url: str, asin: str) -> dict:
+def get_product_info_by_asin(driver: WebDriver | None = None, *, base_url: str, asin: str) -> dict[str, Any]:
     """Get product information from an Amazon product page using the ASIN.
 
     Args:
@@ -283,7 +283,7 @@ def get_product_info_by_asin(driver: WebDriver | None = None, *, base_url: str, 
         driver (WebDriver | None, optional): A Selenium WebDriver instance. Defaults to None.
 
     Returns:
-        dict: Product information.
+        dict[str, Any]: Product information.
     """
     if driver is None:
         driver = su.get_driver()
@@ -291,11 +291,11 @@ def get_product_info_by_asin(driver: WebDriver | None = None, *, base_url: str, 
     return get_product_info(driver, url)
 
 
-def save_results(results: list[dict], directory: str, base_url: str, keyword: str) -> None:
+def save_results(results: list[dict[str, Any]], directory: str, base_url: str, keyword: str) -> None:
     """Save results to a CSV file.
 
     Args:
-        results (list[dict]): List of search results.
+        results (list[dict[str, Any]]): List of search results.
         directory (str): Output directory.
         base_url (str): Base URL of the search engine.
         keyword (str): Search keyword.
@@ -326,7 +326,7 @@ def save_webpage_as_png(driver: WebDriver | None, url: str, filename: str) -> No
         driver.get(url)
 
         WebDriverWait(driver, 30).until(
-            lambda driver: driver.execute_script("return document.readyState") == "complete"
+            lambda driver: driver.execute_script("return document.readyState") == "complete"  # type: ignore[no-untyped-call]
         )
 
         su.reject_cookies(driver)
@@ -334,11 +334,11 @@ def save_webpage_as_png(driver: WebDriver | None, url: str, filename: str) -> No
 
         width = driver.execute_script(
             "return Math.max( document.body.scrollWidth, document.body.offsetWidth, document.documentElement.clientWidth, document.documentElement.scrollWidth, document.documentElement.offsetWidth );"
-        )
+        )  # type: ignore[no-untyped-call]
 
         height = driver.execute_script(
             "return Math.max( document.body.scrollHeight, document.body.offsetHeight, document.documentElement.clientHeight, document.documentElement.scrollHeight, document.documentElement.offsetHeight );"
-        )
+        )  # type: ignore[no-untyped-call]
 
         driver.set_window_size(width, height)
 
@@ -348,7 +348,13 @@ def save_webpage_as_png(driver: WebDriver | None, url: str, filename: str) -> No
         logger.exception(f"Error saving webpage {url} as PNG: {e}")
 
 
-def save_full_page_screenshots(output_directory: str, results: list[dict]) -> None:
+def save_full_page_screenshots(output_directory: str, results: list[dict[str, Any]]) -> None:
+    """Save full page screenshots of search results to a directory.
+
+    Args:
+        output_directory (str): Output directory.
+        results (list[dict[str, Any]]): List of search results.
+    """
     try:
         driver: WebDriver = su.get_driver()
         for result in results:
@@ -365,7 +371,7 @@ def search_amazon(
     max_results: int | None = None,
     max_search_result_pages: int | None = None,
     output_directory: str | None = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Search Amazon for a keyword and get product information. Optionally, if an output directory is provided, save search result pages as PNG files.
 
     Args:
@@ -376,17 +382,19 @@ def search_amazon(
         output_directory (str | None, optional): Output directory. If provided, save search result pages as PNG files. Defaults to None.
 
     Returns:
-        list[dict]: List of search results.
+        list[dict[str, Any]]: List of search results.
     """
     logger.info(f"Searching for {keyword} on {base_url}")
 
     driver: WebDriver = su.get_driver()
 
-    products: list[dict] = []
+    products: list[dict[str, Any]] = []
     try:
         pages: list[str] = get_search_result_pages(driver, base_url, keyword, max_search_result_pages)
 
-        candidates: list[dict] = get_products_found_on_pages(driver, base_url, max_results, pages, output_directory)
+        candidates: list[dict[str, Any]] = get_products_found_on_pages(
+            driver, base_url, max_results, pages, output_directory
+        )
 
         products = get_product_informations(driver, base_url, keyword, candidates)
 
@@ -403,22 +411,42 @@ def search_amazon(
 
 
 def store_search_result_images(driver: WebDriver, output_directory: str | None, pages: list[str]) -> None:
+    """Store search result images as PNG files.
+
+    Args:
+        driver (WebDriver): A Selenium WebDriver instance.
+        output_directory (str | None): Output directory.
+        pages (list[str]): List of search result pages.
+    """
     if not output_directory:
         return
     for index, page in enumerate(pages, start=1):
         save_webpage_as_png(driver, page, f"{output_directory}/search_page_{str(index).zfill(2)}.png")
 
 
-def get_product_informations(driver: WebDriver, base_url: str, keyword: str, candidates: list[dict]) -> list[dict]:
+def get_product_informations(
+    driver: WebDriver, base_url: str, keyword: str, candidates: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Get product information from a list of search results.
+
+    Args:
+        driver (WebDriver): A Selenium WebDriver instance.
+        base_url (str): Base URL of the search engine.
+        keyword (str): The search keyword.
+        candidates (list[dict[str, Any]]): List of search results.
+
+    Returns:
+        list[dict[str, Any]]: List of search results with product information.
+    """
 
     def get_image_names(urls: list[str], sort_id: str) -> list[str]:
         return [f"{sort_id}{chr(97+index)}.{url.split('.')[-1]}" for index, url in enumerate(urls)]
 
     sort_id = 1
-    products: list[dict] = []
+    products: list[dict[str, Any]] = []
     for candidate in candidates:
         try:
-            product_info: dict = get_product_info(driver, candidate["url"])
+            product_info: dict[str, Any] = get_product_info(driver, candidate["url"])
 
             if not product_info:
                 continue
@@ -447,7 +475,19 @@ def get_product_informations(driver: WebDriver, base_url: str, keyword: str, can
 
 def get_products_found_on_pages(
     driver: WebDriver, base_url: str, max_results: int | None, pages: list[str], output_directory: str | None = None
-) -> list[dict]:
+) -> list[dict[str, Any]]:
+    """Get products found on a list of search result pages.
+
+    Args:
+        driver (WebDriver): A Selenium WebDriver instance.
+        base_url (str): Base URL of the search engine.
+        max_results (int | None): Maximum number of results to return. Defaults to None.
+        pages (list[str]): List of search result pages.
+        output_directory (str | None, optional): Output directory. Defaults to None.
+
+    Returns:
+        list[dict[str, Any]]: List of products found on the pages.
+    """
     candidates: list[dict[str, Any]] = []
     for i, page in enumerate(pages, start=1):
         try:
@@ -466,11 +506,11 @@ def get_products_found_on_pages(
     return candidates
 
 
-def save_images_from_results(results: list[dict], directory: str, subdir_key: str) -> None:
+def save_images_from_results(results: list[dict[str, Any]], directory: str, subdir_key: str) -> None:
     """Save images from a list of search results to a directory. The subdirectory is created using a key from the results.
 
     Args:
-        results (list[dict]): List of search results.
+        results (list[dict[str, Any]]): List of search results.
         directory (str): Output directory.
         subdir_key (str): Key to use as subdirectory.
     """
@@ -480,11 +520,11 @@ def save_images_from_results(results: list[dict], directory: str, subdir_key: st
         save_images(result["image_urls"], result["image_names"], result_directory)
 
 
-def save_description_images(results: list[dict], directory: str, subdir_key: str) -> None:
+def save_description_images(results: list[dict[str, Any]], directory: str, subdir_key: str) -> None:
     """Save description images from a list of search results to a directory. The subdirectory is created using a key from the results.
 
     Args:
-        results (list[dict]): List of search results.
+        results (list[dict[str, Any]]): List of search results.
         directory (str): Output directory.
         subdir_key (str): Key to use as subdirectory.
     """
@@ -509,7 +549,7 @@ def get_reviews(
     base_url: str,
     asin: str,
     sentiment: PossibleSentiments,
-) -> list[dict] | None:
+) -> list[dict[str, Any]] | None:
     """Get reviews from an Amazon product page.
 
     Args:
@@ -575,11 +615,11 @@ def get_reviews(
     return reviews
 
 
-def save_reviews(reviews: list[dict], filename: str) -> None:
+def save_reviews(reviews: list[dict[str, Any]], filename: str) -> None:
     """Save reviews to a CSV file.
 
     Args:
-        reviews (list[dict]): List of reviews.
+        reviews (list[dict[str, Any]]): List of reviews.
         filename (str): Output filename.
     """
     Path(filename).parent.mkdir(parents=True, exist_ok=True)
@@ -591,12 +631,15 @@ def save_reviews(reviews: list[dict], filename: str) -> None:
 
 # FIXME: Add `base_url` to arguments. Change `results` to list of ASINs and sort_ids.
 def export_reviews(
-    results: list[dict], output_directory: str, sentiment: PossibleSentiments = "all", create_empty_files: bool = True
+    results: list[dict[str, Any]],
+    output_directory: str,
+    sentiment: PossibleSentiments = "all",
+    create_empty_files: bool = True,
 ) -> None:
     """Export reviews to CSV files.
 
     Args:
-        results (list[dict]): List of search results.
+        results (list[dict[str, Any]]): List of search results.
         output_directory (str): Output directory.
         sentiment (PossibleSentiments, optional): Sentiment of the reviews. Defaults to "all".
         create_empty_files (bool, optional): Create empty files if no reviews are found. Defaults to True.

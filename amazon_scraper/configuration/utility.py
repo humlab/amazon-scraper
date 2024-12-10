@@ -19,6 +19,15 @@ class dotdict(dict):
 
 
 def dget(data: dict, *path: str | list[str], default: Any = None) -> Any:
+    """Get element from dict using dot notation.
+
+    Args:
+        data (dict): Dictionary to search.
+        default (Any, optional): Default value. Defaults to None.
+
+    Returns:
+        Any: Element from dict or default value.
+    """
     if path is None or not data:
         return default
 
@@ -36,6 +45,14 @@ def dget(data: dict, *path: str | list[str], default: Any = None) -> Any:
 
 
 def dotexists(data: dict, *paths: list[str]) -> bool:
+    """Check if element exists in dict using dot notation.
+
+    Args:
+        data (dict): Dictionary to search.
+
+    Returns:
+        bool: True if element exists, False otherwise.
+    """
     for path in paths:
         if dotget(data, path, default="@@") != "@@":
             return True
@@ -43,7 +60,14 @@ def dotexists(data: dict, *paths: list[str]) -> bool:
 
 
 def dotexpand(path: str) -> list[str]:
-    """Expands paths with ',' and ':'."""
+    """Expand dot notation path into list of paths. Expands paths with ',' and ':'.
+
+    Args:
+        path (str): Path to expand.
+
+    Returns:
+        list[str]: List of expanded paths.
+    """
     paths = []
     for p in path.replace(' ', '').split(','):
         if not p:
@@ -56,8 +80,18 @@ def dotexpand(path: str) -> list[str]:
 
 
 def dotget(data: dict, path: str, default: Any = None) -> Any:
-    """Gets element from dict. Path can be x.y.y or x_y_y or x:y:y.
-    if path is x:y:y then element is search using borh x.y.y or x_y_y."""
+    """Get element from dict using dot notation x.y.z or x_y_z or x:y:z.
+    Gets element from dict. Path can be x.y.y or x_y_y or x:y:y.
+    if path is x:y:y then element is search using borh x.y.y or x_y_y.
+
+    Args:
+        data (dict): The dictionary to search.
+        path (str): The path to search.
+        default (Any, optional): The default value to return if the path is not found. Defaults to None.
+
+    Returns:
+        Any: The element from the dictionary or the default value.
+    """
 
     for key in dotexpand(path):
         d: dict = data

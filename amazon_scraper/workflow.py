@@ -17,6 +17,14 @@ from amazon_scraper.configuration import ConfigValue  # type: ignore[attr-define
 
 
 def scrape_workflow(options: dict[str, Any], keyword: str, domain: str, force: bool = False) -> None:
+    """Scrape Amazon for a given keyword and domain.
+
+    Args:
+        options (dict[str, Any]): A dictionary of options.
+        keyword (str): The keyword to search for.
+        domain (str): The domain to search on.
+        force (bool, optional): Whether to force scraping even if the keyword has already been scraped. Existing data will be deleted. Defaults to False.
+    """
 
     base_url: str = f"https://www.amazon.{domain}"
     target_root: str = ConfigValue("payload.target_folder", mandatory=True).resolve()

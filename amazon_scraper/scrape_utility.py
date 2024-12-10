@@ -13,6 +13,11 @@ from amazon_scraper.configuration import ConfigValue  # type: ignore
 
 
 def get_driver() -> WebDriver:
+    """Get a headless Firefox WebDriver instance.
+
+    Returns:
+        WebDriver: A headless Firefox WebDriver instance.
+    """
     options = webdriver.FirefoxOptions()
     options.add_argument('-headless')
     driver = webdriver.Firefox(options=options)
@@ -50,11 +55,14 @@ def wait_page_ready(item: WebDriver | WebElement) -> None:
     Returns:
         None
     """
-    item = find_webdriver_parent(item)
-    if item is None:
+    parent = find_webdriver_parent(item)
+    if parent is None:
         raise ValueError("Parent webdriver object not found")
     try:
-        WebDriverWait(item, 30).until(lambda driver: driver.execute_script("return document.readyState") == "complete")
+        WebDriverWait(parent, 30).until(
+            lambda driver: isinstance(driver, WebDriver)
+            and driver.execute_script("return document.readyState") == "complete"  # type: ignore[no-untyped-call]
+        )
     except TimeoutException as e:
         raise TimeoutError("Page not loaded") from e
 
