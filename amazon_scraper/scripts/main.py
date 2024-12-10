@@ -13,6 +13,12 @@ ConfigStore.configure_context(source='config/config.yml')
 @click.option("--domain", default=None, help="Amazon domain to scrape")
 @click.option("--keyword", default=None, help="Keyword to search for")
 def main(domain: str, keyword: str) -> None:
+    """Scrape Amazon for a given keyword and domain.
+
+    Args:
+        domain (str): The domain to scrape.
+        keyword (str): The keyword to search for.
+    """
     options: dict[str, Any] = ConfigValue("options").resolve()
 
     domains: list[str] = [domain] if domain else ConfigValue("payload.domains").resolve()

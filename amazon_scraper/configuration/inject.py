@@ -73,12 +73,28 @@ class ConfigStore:
 
     @classmethod
     def config(cls) -> "Config":
+        """Get the current configuration object
+
+        Raises:
+            ValueError: If the configuration object is not properly initialized
+
+        Returns:
+            Config: The configuration object
+        """
         if not isinstance(cls.store.get(cls.context), Config):
             raise ValueError(f"Config context {cls.context} not properly initialized")
         return cls.store.get(cls.context)
 
     @classmethod
     def resolve(cls, value: T | ConfigValue) -> T:
+        """Resolve a ConfigValue object
+
+        Args:
+            value (T | ConfigValue): The value to resolve
+
+        Returns:
+            T: The resolved value
+        """
         if not isinstance(value, ConfigValue):
             return value
         return dget(cls.config(), value.key)
@@ -92,6 +108,20 @@ class ConfigStore:
         env_filename: str | None = None,
         env_prefix: str = None,
     ) -> Self:
+        """Configure a context with a configuration file
+
+        Args:
+            context (str, optional): The context to configure. Defaults to "default".
+            source (Config | str | dict, optional): The configuration source. Defaults to None.
+            env_filename (str | None, optional): Environment filename. Defaults to None.
+            env_prefix (str, optional): Environment prefix. Defaults to None.
+
+        Raises:
+            ValueError: If the context is not defined and no source is provided
+
+        Returns:
+            Self: The ConfigStore object
+        """
         if not cls.store.get(context) and not source:
             raise ValueError(f"Config context {context} undefined, cannot initialize")
 
@@ -112,6 +142,18 @@ class ConfigStore:
 
     @classmethod
     def _set_config(cls, *, context: str = "default", cfg: Config | None = None) -> Self:
+        """Set the configuration object for a context
+
+        Args:
+            context (str, optional): The context to set. Defaults to "default".
+            cfg (Config | None, optional): The configuration object. Defaults to None.
+
+        Raises:
+            ValueError: If the configuration object is not a Config object
+
+        Returns:
+            Self: The ConfigStore object
+        """
         if not isinstance(cfg, Config):
             raise ValueError(f"Expected Config, found {type(cfg)}")
         cfg.context = context
@@ -138,6 +180,15 @@ def resolve_arguments(fn_or_cls, args, kwargs):
 
 
 def inject_config(fn_or_cls: T) -> Callable[..., T]:
+    """Inject configuration values into a function or class constructor
+
+    Args:
+        fn_or_cls (T): The function or class constructor
+
+    Returns:
+        Callable[..., T]: The decorated function or class constructor
+    """
+
     @functools.wraps(fn_or_cls)
     def decorated(*args, **kwargs):
         args, kwargs = resolve_arguments(fn_or_cls, args, kwargs)
