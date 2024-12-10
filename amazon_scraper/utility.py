@@ -1,24 +1,27 @@
 import time
-from typing import Any, Callable
+from typing import Any, Callable, Tuple, Type, Union
 
 import yaml
 from loguru import logger
 
 
 def retry(
-    times: int, exceptions: type[Exception] | tuple[type[Exception]] = Exception, sleep: int = 0, default: Any = None
-) -> Callable:
+    times: int,
+    exceptions: Union[Type[Exception], Tuple[Type[Exception], ...]] = Exception,
+    sleep: int = 0,
+    default: Any = None,
+) -> Callable[..., Any]:
     """
     Retry decorator to retry a function call if it raises an exception.
 
     Args:
         times (int): Number of times to retry.
-        exceptions (Exception | tuple[Exception], optional): Exceptions to catch. Defaults to (Exception,).
+        exceptions (Union[Type[Exception], Tuple[Type[Exception], ...]], optional): Exceptions to catch. Defaults to Exception.
         sleep (int, optional): Time to sleep between retries. Defaults to 0.
         default (Any, optional): Default value to return if all retries fail. Defaults to None.
 
     Returns:
-        Callable: The decorated function.
+        Callable[..., Any]: The decorated function.
 
     Example:
         >>> @retry(times=3)
@@ -32,7 +35,7 @@ def retry(
     elif not isinstance(exceptions, tuple):
         exceptions = (exceptions,)
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         def fx(*args: Any, **kwargs: Any) -> Any:
             attempt: int = 0
             while attempt < times:
