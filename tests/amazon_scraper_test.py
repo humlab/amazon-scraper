@@ -1,19 +1,9 @@
 import logging
 
 import pytest
-from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 
 from amazon_scraper.amazon_scraper import get_image_urls, get_product_info, get_products, get_search_result_pages
-
-
-@pytest.fixture
-def driver():
-    options = webdriver.FirefoxOptions()
-    options.add_argument('-headless')
-    driver = webdriver.Firefox(options=options)
-    yield driver
-    driver.quit()
 
 
 @pytest.mark.web

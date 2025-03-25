@@ -1,18 +1,6 @@
 import logging
 
-import pytest
-from selenium import webdriver
-
 from amazon_scraper.amazon_scraper import get_reviews
-
-
-@pytest.fixture
-def driver():
-    options = webdriver.FirefoxOptions()
-    options.add_argument('-headless')
-    driver = webdriver.Firefox(options=options)
-    yield driver
-    driver.quit()
 
 
 def test_get_reviews_when_no_reviews(driver, caplog):
