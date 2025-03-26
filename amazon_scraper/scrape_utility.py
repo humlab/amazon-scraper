@@ -1,18 +1,22 @@
+import os
 import time
 from typing import Any
 
+from dotenv import load_dotenv
 from loguru import logger
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, TimeoutException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.service import Service as FirefoxService
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.wait import WebDriverWait
+from webdriver_manager.firefox import GeckoDriverManager
 
 from amazon_scraper.configuration import ConfigValue  # type: ignore
 
 
-def get_driver() -> WebDriver:
+def get_driver(use_webdriver_manager: bool = False) -> WebDriver:
     """Get a headless Firefox WebDriver instance.
 
     Returns:
@@ -20,8 +24,15 @@ def get_driver() -> WebDriver:
     """
     options = webdriver.FirefoxOptions()
     options.add_argument('-headless')
-    driver = webdriver.Firefox(options=options)
-    return driver
+
+    if use_webdriver_manager:
+        return webdriver.Firefox(service=FirefoxService(GeckoDriverManager().install()), options=options)
+
+    load_dotenv()
+    executable_path = os.getenv("FIREFOX_EXECUTABLE_PATH")
+    if not executable_path:
+        raise ValueError("FIREFOX_EXECUTABLE_PATH not set in .env file")
+    return webdriver.Firefox(service=FirefoxService(executable_path=executable_path), options=options)
 
 
 def find_webdriver_parent(item: WebDriver | WebElement, depth: int = 0) -> WebDriver | None:
