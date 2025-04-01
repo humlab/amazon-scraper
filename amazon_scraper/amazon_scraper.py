@@ -575,6 +575,10 @@ def get_reviews(
 
     reviews = []
 
+    if "Sign in" in driver.page_source or "Sign-In" in driver.title:
+        logger.warning(f"Sign in required for ASIN: {asin}")
+        return None
+
     # TODO: Add function get_element_with_attribute_value
     reviews_button: WebElement | None = None
     try:
