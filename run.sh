@@ -2,4 +2,5 @@
 
 today=$(date +%Y%m%d)
 
-PYTHONPATH=. poetry run python amazon_scraper/scripts/main.py >& nohup.out.${today}.log
+mkdir -p logs
+PYTHONPATH=. poetry run python amazon_scraper/scripts/main.py >& logs/nohup.out.${today}.log
