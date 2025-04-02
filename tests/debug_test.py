@@ -10,6 +10,8 @@ from amazon_scraper.workflow import scrape_workflow
 def test_scrape():
     ConfigStore.configure_context(source='config/config.yml')
     options: dict[str, Any] = ConfigValue("options").resolve()
+    options["max_results"] = 1
+    options["max_search_result_pages"] = 1
     domain = "de"
     keyword = "prayer shawl"
     scrape_workflow(options, keyword, domain, force=True)
