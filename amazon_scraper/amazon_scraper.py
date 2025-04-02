@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 import requests
 from loguru import logger
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -674,6 +674,8 @@ def export_reviews(
                         file.write('')
                 continue
             save_reviews(reviews, filename)
+    except WebDriverException as e:
+        logger.exception(f"WebDriver error: {e}")
     except Exception as e:
         logger.exception(f"Error exporting reviews: {e}")
     finally:
