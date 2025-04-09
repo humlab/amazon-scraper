@@ -159,6 +159,24 @@ class TestRetry:
         assert "Exception thrown running sample_method, attempt 0 of 3" in caplog.text
         assert "Failed to run sample_method after 3 attempts" in caplog.text
 
+    def test_retry_fx_with_partial_success(self, caplog):
+        def sample_function(attempts):
+            if attempts[0] < 2:
+                attempts[0] += 1
+                raise ValueError("Test exception")
+            return "success"
+
+        attempts = [0]
+        decorated_func = retry(times=3)(lambda: sample_function(attempts))
+
+        with caplog.at_level(logging.WARNING):
+            result = decorated_func()
+
+        assert result == "success"
+        assert attempts[0] == 2
+        assert "Exception thrown running <lambda>, attempt 0 of 3" in caplog.text
+        assert "Exception thrown running <lambda>, attempt 1 of 3" in caplog.text
+
 
 class TestLoadYaml:
     def test_load_yaml_full_document(self):
