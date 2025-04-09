@@ -7,26 +7,35 @@ from loguru import logger
 
 def retry(
     times: int,
-    exceptions: Union[Type[Exception], Tuple[Type[Exception], ...]] = Exception,
+    exceptions: Union[Type[Exception], Tuple[Type[Exception], ...], None] = Exception,
     sleep: int = 0,
     default: Any = None,
 ) -> Callable[..., Any]:
     """
-    Retry decorator to retry a function call if it raises an exception.
+    A decorator to retry a function call if it raises an exception. The function will be retried up to `times` times,
+    with an optional delay (`sleep`) between retries. If all retries fail, it will either return a default value
+    (`default`) or raise the last exception.
+
+    - If `times` is set to 0, the function will not be retried and will immediately return the `default` value if provided.
+    - If `exceptions` is set to None, all exceptions will be caught.
+    - If `default` is None and all retries fail, the last exception will be raised.
+
+    This decorator is useful for handling temporary issues like network errors or rate limiting. It logs a warning
+    message for each retry attempt and an error message if all retries fail.
 
     Args:
-        times (int): Number of times to retry.
-        exceptions (Union[Type[Exception], Tuple[Type[Exception], ...]], optional): Exceptions to catch. Defaults to Exception.
-        sleep (int, optional): Time to sleep between retries. Defaults to 0.
-        default (Any, optional): Default value to return if all retries fail. Defaults to None.
+        times (int): The maximum number of retry attempts.
+        exceptions (Union[Type[Exception], Tuple[Type[Exception], ...], None], optional): The exceptions to catch. Defaults to Exception.
+        sleep (int, optional): The delay (in seconds) between retry attempts. Defaults to 0.
+        default (Any, optional): The value to return if all retries fail. Defaults to None.
 
     Returns:
         Callable[..., Any]: The decorated function.
 
     Example:
-        >>> @retry(times=3)
+        >>> @retry(times=3, sleep=1)
         ... def my_function():
-        ...     raise Exception
+        ...     raise Exception("Temporary error")
         ...
         >>> my_function()
     """
@@ -37,8 +46,13 @@ def retry(
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         def fx(*args: Any, **kwargs: Any) -> Any:
+            if times == 0:
+                if default is None:
+                    raise RuntimeError("No retries specified and no default value provided.")
+                return default
+
             attempt: int = 0
-            while attempt < times:
+            for attempt in range(times):
                 try:
                     return func(*args, **kwargs)
                 except exceptions:  # pylint: disable=broad-exception-caught, catching-non-exception
