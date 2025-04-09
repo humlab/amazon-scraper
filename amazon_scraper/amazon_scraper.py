@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 import requests
 from loguru import logger
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -575,6 +575,10 @@ def get_reviews(
 
     reviews = []
 
+    if "Sign in" in driver.page_source or "Sign-In" in driver.title:
+        logger.warning(f"Sign in required for ASIN: {asin}")
+        return None
+
     # TODO: Add function get_element_with_attribute_value
     reviews_button: WebElement | None = None
     try:
@@ -670,6 +674,8 @@ def export_reviews(
                         file.write('')
                 continue
             save_reviews(reviews, filename)
+    except WebDriverException as e:
+        logger.exception(f"WebDriver error: {e}")
     except Exception as e:
         logger.exception(f"Error exporting reviews: {e}")
     finally:

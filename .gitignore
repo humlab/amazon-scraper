@@ -173,6 +173,7 @@ tmp/
 notes/
 lib/
 output/
+logs/
 
 # Other
 ~$*

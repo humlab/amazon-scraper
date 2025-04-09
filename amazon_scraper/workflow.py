@@ -62,18 +62,27 @@ def scrape_workflow(options: dict[str, Any], keyword: str, domain: str, force: b
         if options.get("save_images"):
             logger.info("Saving images")
             save_images_from_results(results, output_directory, subdir_key="sort_id")
+        else:
+            logger.info("Skipping images export")
 
         if options.get("save_description_images"):
             logger.info("Saving description images")
             save_description_images(results, output_directory, subdir_key="sort_id")
+        else:
+            logger.info("Skipping description images export")
 
         if options.get("save_full_page_images"):
             logger.info("Saving full page images")
             save_full_page_screenshots(output_directory, results)
+        else:
+            logger.info("Skipping full page images export")
 
-        for sentiment in options.get("export_reviews", []):
-            logger.info(f"Exporting {sentiment} reviews")
-            export_reviews(results, output_directory, sentiment=sentiment)
+        if options.get("save_reviews"):
+            for sentiment in options.get("export_reviews", []):
+                logger.info(f"Exporting {sentiment} reviews")
+                export_reviews(results, output_directory, sentiment=sentiment)
+        else:
+            logger.info("Skipping reviews export")
 
         logger.success(f"Finished scraping {keyword} on {domain}")
 

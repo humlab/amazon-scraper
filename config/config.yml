@@ -1,9 +1,9 @@
 payload:
   target_folder: ./output
   domains:
-    # - "com"
+    - "com"
     - "de"
-    # - "co.uk"
+    - "co.uk"
   keywords:
     - house blessing
     - mezuzah
@@ -20,7 +20,8 @@ payload:
     - star of david
     - seder
     - seder plate
-    - challah cup
+    - challah cover
+    - challah
     - matzoh
 
 options:
@@ -38,6 +39,7 @@ options:
   log_levels:
       - "info"
       - "debug"
+  save_reviews: False
 
 selectors:
   reject_cookies: "#sp-cc-rejectall-link"
