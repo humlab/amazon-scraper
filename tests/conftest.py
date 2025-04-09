@@ -33,6 +33,11 @@ def fixture_driver():
     """
     options = webdriver.FirefoxOptions()
     options.add_argument('-headless')
+
+    options.set_preference("network.dns.disableIPv6", True)  # Disable IPv6 if DNS issues occur
+    options.set_preference("network.http.connection-timeout", 10)  # Set connection timeout
+    options.set_preference("network.http.response-timeout", 10)  # Set response timeout
+
     executable_path = "/snap/bin/firefox.geckodriver"  # FIXME: This is a hardcoded path. It should be dynamic. Use `webdriver_manager` package.
     service = webdriver.FirefoxService(executable_path=executable_path)
     driver = webdriver.Firefox(service=service, options=options)
