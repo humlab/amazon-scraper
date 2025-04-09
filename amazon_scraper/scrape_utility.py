@@ -29,9 +29,11 @@ def get_driver(use_webdriver_manager: bool = False) -> WebDriver:
         return webdriver.Firefox(service=FirefoxService(GeckoDriverManager().install()), options=options)
 
     load_dotenv()
-    executable_path = os.getenv("FIREFOX_EXECUTABLE_PATH")
+    executable_path = os.getenv("FIREFOX_EXECUTABLE_PATH", None)
     if not executable_path:
         raise ValueError("FIREFOX_EXECUTABLE_PATH not set in .env file")
+    if not os.path.isfile(executable_path):
+        raise ValueError(f"The path is not a valid file: {executable_path}")
     return webdriver.Firefox(service=FirefoxService(executable_path=executable_path), options=options)
 
 
