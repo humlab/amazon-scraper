@@ -24,7 +24,7 @@ def fixture_caplog(caplog: LogCaptureFixture) -> Generator[Any, Any, Any]:
     logger.remove(handler_id)
 
 
-@pytest.fixture(name="driver")
+@pytest.fixture(name="driver", scope="session")
 def fixture_driver():
     """Fixture for Selenium WebDriver.
 
