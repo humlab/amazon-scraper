@@ -167,7 +167,7 @@ class TestRetry:
             return "success"
 
         attempts = [0]
-        decorated_func = retry(times=3)(lambda: sample_function(attempts))
+        decorated_func = retry(times=3)(lambda: sample_function(attempts))  # type: ignore[no-untyped-call]
 
         with caplog.at_level(logging.WARNING):
             result = decorated_func()
