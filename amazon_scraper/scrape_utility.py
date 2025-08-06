@@ -74,7 +74,7 @@ def wait_page_ready(item: WebDriver | WebElement) -> None:
     try:
         WebDriverWait(parent, 30).until(
             lambda driver: isinstance(driver, WebDriver)
-            and driver.execute_script("return document.readyState") == "complete"  # type: ignore[no-untyped-call]
+            and driver.execute_script("return document.readyState") == "complete"
         )
     except TimeoutException as e:
         raise TimeoutError("Page not loaded") from e

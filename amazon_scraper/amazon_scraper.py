@@ -148,7 +148,7 @@ def get_image_urls(driver: WebDriver, url: str | None = None) -> Sequence[str | 
         actions = ActionChains(driver)
 
         for element in elements:
-            driver.execute_script("arguments[0].scrollIntoView();", element)  # type: ignore[no-untyped-call]
+            driver.execute_script("arguments[0].scrollIntoView();", element)
             actions.move_to_element(element).perform()
             time.sleep(1)
 
@@ -326,7 +326,7 @@ def save_webpage_as_png(driver: WebDriver | None, url: str, filename: str) -> No
         driver.get(url)
 
         WebDriverWait(driver, 30).until(
-            lambda driver: driver.execute_script("return document.readyState") == "complete"  # type: ignore[no-untyped-call]
+            lambda driver: driver.execute_script("return document.readyState") == "complete"
         )
 
         su.reject_cookies(driver)
@@ -334,11 +334,11 @@ def save_webpage_as_png(driver: WebDriver | None, url: str, filename: str) -> No
 
         width = driver.execute_script(
             "return Math.max( document.body.scrollWidth, document.body.offsetWidth, document.documentElement.clientWidth, document.documentElement.scrollWidth, document.documentElement.offsetWidth );"
-        )  # type: ignore[no-untyped-call]
+        )
 
         height = driver.execute_script(
             "return Math.max( document.body.scrollHeight, document.body.offsetHeight, document.documentElement.clientHeight, document.documentElement.scrollHeight, document.documentElement.offsetHeight );"
-        )  # type: ignore[no-untyped-call]
+        )
 
         driver.set_window_size(width, height)
 
